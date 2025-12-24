@@ -958,7 +958,7 @@ export const HomeScreen: React.FC = () => {
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="text-[10px] font-bold text-zen-moss bg-zen-moss/10 px-1.5 py-0.5 rounded-md">
-                                                            ฿{item.price}
+                                                            {item.price}
                                                         </span>
                                                         {item.location_ref && (
                                                             <span className="text-[10px] text-zen-text-light truncate max-w-[120px]">
