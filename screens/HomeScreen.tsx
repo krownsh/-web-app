@@ -457,6 +457,8 @@ export const HomeScreen: React.FC = () => {
     };
 
     // --- Active Itinerary Sync Logic ---
+    const [isSynced, setIsSynced] = useState(false);
+
     // Sync 'is_current' on load
     useEffect(() => {
         const syncInitial = async () => {
@@ -474,6 +476,9 @@ export const HomeScreen: React.FC = () => {
                     }
                 }
             } catch (e) { console.error(e); }
+            finally {
+                setIsSynced(true);
+            }
         };
         syncInitial();
     }, [wheelData, currentDayKey]);
@@ -481,7 +486,7 @@ export const HomeScreen: React.FC = () => {
     // Debounce Update 'is_current' on scroll
     const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
-        if (wheelData.length === 0) return;
+        if (wheelData.length === 0 || !isSynced) return;
 
         if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
 
@@ -493,7 +498,7 @@ export const HomeScreen: React.FC = () => {
         }, 1500);
 
         return () => { if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current); };
-    }, [activeIndex, wheelData]);
+    }, [activeIndex, wheelData, isSynced]);
 
     return (
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative pb-32">
