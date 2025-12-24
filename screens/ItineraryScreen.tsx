@@ -96,30 +96,30 @@ interface LocationGuide {
 }
 
 const DEFAULT_DB: Record<string, LocationGuide> = {
-    '洽圖恰假日市集': {
-        name: '洽圖恰假日市集',
-        mustBuy: [
-            { id: 'chat-1', name: '椰子冰淇淋', price: '฿60', desc: '入口處必吃，附贈椰子水。', tag: '必吃' },
-            { id: 'chat-2', name: '手工編織包', price: '฿250', desc: '8區特色小店，質感很好。', tag: '熱銷' },
-            { id: 'chat-3', name: '香氛精油', price: '฿100', desc: '送禮自用兩相宜，味道選擇多。' },
-            { id: 'chat-4', name: '泰式奶茶', price: '฿40', desc: '手標紅茶現沖及時飲。' },
-        ],
-        links: [
-            { id: 'l1', title: '洽圖恰戰利品大公開', source: 'Dcard', url: 'https://www.dcard.tw', icon: 'forum', color: 'text-blue-400' },
-            { id: 'l2', title: '市集地圖與攻略', source: 'Blog', url: 'https://google.com', icon: 'map', color: 'text-green-500' }
-        ]
-    },
-    'BIG C 大賣場': {
-        name: 'BIG C Supercenter',
-        mustBuy: [
-            { id: 'bigc-1', name: '小老闆海苔', price: '฿59', desc: '經典伴手禮，整箱搬最划算。', tag: '必買' },
-            { id: 'bigc-2', name: 'Pocky 芒果口味', price: '฿20', desc: '泰國限定口味。' },
-            { id: 'bigc-3', name: '手標泰式茶粉', price: '฿130', desc: '紅色罐裝最經典。' },
-        ],
-        links: [
-            { id: 'l3', title: 'BIG C 必買清單 Top 10', source: 'Instagram', url: 'https://instagram.com', icon: 'photo_camera', color: 'text-pink-500' }
-        ]
-    }
+    // '洽圖恰假日市集': {
+    //     name: '洽圖恰假日市集',
+    //     mustBuy: [
+    //         { id: 'chat-1', name: '椰子冰淇淋', price: '฿60', desc: '入口處必吃，附贈椰子水。', tag: '必吃' },
+    //         { id: 'chat-2', name: '手工編織包', price: '฿250', desc: '8區特色小店，質感很好。', tag: '熱銷' },
+    //         { id: 'chat-3', name: '香氛精油', price: '฿100', desc: '送禮自用兩相宜，味道選擇多。' },
+    //         { id: 'chat-4', name: '泰式奶茶', price: '฿40', desc: '手標紅茶現沖及時飲。' },
+    //     ],
+    //     links: [
+    //         { id: 'l1', title: '洽圖恰戰利品大公開', source: 'Dcard', url: 'https://www.dcard.tw', icon: 'forum', color: 'text-blue-400' },
+    //         { id: 'l2', title: '市集地圖與攻略', source: 'Blog', url: 'https://google.com', icon: 'map', color: 'text-green-500' }
+    //     ]
+    // },
+    // 'BIG C 大賣場': {
+    //     name: 'BIG C Supercenter',
+    //     mustBuy: [
+    //         { id: 'bigc-1', name: '小老闆海苔', price: '฿59', desc: '經典伴手禮，整箱搬最划算。', tag: '必買' },
+    //         { id: 'bigc-2', name: 'Pocky 芒果口味', price: '฿20', desc: '泰國限定口味。' },
+    //         { id: 'bigc-3', name: '手標泰式茶粉', price: '฿130', desc: '紅色罐裝最經典。' },
+    //     ],
+    //     links: [
+    //         { id: 'l3', title: 'BIG C 必買清單 Top 10', source: 'Instagram', url: 'https://instagram.com', icon: 'photo_camera', color: 'text-pink-500' }
+    //     ]
+    // }
 };
 
 // ----------------------------------------------------------------------
