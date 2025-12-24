@@ -1098,50 +1098,40 @@ export const HomeScreen: React.FC = () => {
                         <div className="p-6 flex flex-col gap-4">
                             {/* Script for App Launch */}
                             {(() => {
-                                const handleAppLaunch = (type: 'translate' | 'lens') => {
+                                const handleAppLaunch = (type: 'translate' | 'camera') => {
                                     const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
                                     const isAndroid = /android/i.test(userAgent);
                                     const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
 
-                                    let appUrl = '';
-                                    let storeUrl = '';
+                                    // Target Database: Google Translate
+                                    const androidPackage = 'com.google.android.apps.translate';
+                                    const iosAppId = 'id414706506';
+                                    const webUrl = 'https://translate.google.com/?sl=th&tl=zh-TW';
 
-                                    if (type === 'translate') {
-                                        appUrl = 'googletranslate://?sl=th&tl=zh-TW';
-                                        if (isAndroid) {
-                                            storeUrl = 'https://play.google.com/store/apps/details?id=com.google.android.apps.translate';
-                                        } else if (isIOS) {
-                                            storeUrl = 'https://apps.apple.com/app/google-translate/id414706506';
-                                        } else {
-                                            // Desktop
-                                            window.open('https://translate.google.com/?sl=th&tl=zh-TW', '_blank');
-                                            return;
-                                        }
-                                    } else if (type === 'lens') {
-                                        if (isAndroid) {
-                                            appUrl = 'googlelens://';
-                                            storeUrl = 'https://play.google.com/store/apps/details?id=com.google.ar.lens';
-                                        } else if (isIOS) {
-                                            // iOS gets Google App
-                                            appUrl = 'googleapp://';
-                                            storeUrl = 'https://apps.apple.com/app/google/id284815942';
-                                        } else {
-                                            // Desktop
-                                            window.open('https://lens.google.com/', '_blank');
-                                            return;
-                                        }
+                                    // On Desktop, just open web
+                                    if (!isAndroid && !isIOS) {
+                                        window.open(webUrl, '_blank');
+                                        return;
                                     }
 
-                                    const start = Date.now();
-                                    // Try open app
-                                    window.location.href = appUrl;
+                                    if (isAndroid) {
+                                        // Android Intent: Tries to open app, falls back to Play Store automatically
+                                        const intentUrl = `intent://translate.google.com/?sl=th&tl=zh-TW#Intent;scheme=https;package=${androidPackage};S.browser_fallback_url=https://play.google.com/store/apps/details?id=${androidPackage};end`;
+                                        window.location.href = intentUrl;
+                                    } else if (isIOS) {
+                                        // iOS: Try custom scheme, fallback to App Store via timeout
+                                        const appUrl = 'googletranslate://?sl=th&tl=zh-TW';
+                                        const storeUrl = `https://apps.apple.com/app/google-translate/${iosAppId}`;
 
-                                    // Fallback to store
-                                    setTimeout(() => {
-                                        if (Date.now() - start < 1500) {
-                                            window.location.href = storeUrl;
-                                        }
-                                    }, 1000);
+                                        const start = Date.now();
+                                        window.location.href = appUrl;
+
+                                        setTimeout(() => {
+                                            if (Date.now() - start < 1500) {
+                                                window.location.href = storeUrl;
+                                            }
+                                        }, 1000);
+                                    }
                                 };
 
                                 return (
@@ -1163,15 +1153,15 @@ export const HomeScreen: React.FC = () => {
 
                                         {/* Camera */}
                                         <button
-                                            onClick={() => handleAppLaunch('lens')}
+                                            onClick={() => handleAppLaunch('camera')}
                                             className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-zen-rock shadow-sm active:scale-95 transition-transform group text-left w-full"
                                         >
                                             <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center shrink-0 group-active:bg-purple-500 group-active:text-white transition-colors">
                                                 <span className="material-symbols-outlined text-[24px]">photo_camera</span>
                                             </div>
                                             <div className="flex-1">
-                                                <p className="text-base font-bold text-zen-text">相機翻譯 (Google Lens)</p>
-                                                <p className="text-xs text-zen-text-light">開啟 Google 智慧鏡頭 (iOS 為 Google App)</p>
+                                                <p className="text-base font-bold text-zen-text">相機翻譯 (Google 翻譯)</p>
+                                                <p className="text-xs text-zen-text-light">開啟 App 使用相機功能</p>
                                             </div>
                                             <span className="material-symbols-outlined text-zen-rock">arrow_forward_ios</span>
                                         </button>
