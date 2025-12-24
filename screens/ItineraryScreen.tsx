@@ -35,6 +35,7 @@ const FULL_ITINERARY_DATA: any = {
             { id: 'd3-1', type: 'relax', time: '10:00', title: '飯店設施 / 華欣海灘', desc: '享受度假村設施。' },
             { id: 'd3-2', type: 'activity', time: '13:00', title: '皇家火車站', desc: '泰國最美火車站。' },
             { id: 'd3-3', type: 'activity', time: '15:00', title: '駱駝共和國', desc: '摩洛哥風格主題樂園。' },
+            { id: 'd3-4', type: 'food', time: '16:30', title: '網美海景祕密咖啡廳', desc: '享受無敵海景下午茶，拍照打卡聖地。' },
             { id: 'd3-6', type: 'market', time: '18:00', title: '華欣夜市', desc: '晚餐自費。' },
         ]
     },
@@ -42,6 +43,7 @@ const FULL_ITINERARY_DATA: any = {
         date: '30 Dec',
         items: [
             { id: 'd4-1', type: 'nature', time: '09:00', title: '拷龍洞', desc: '天然鐘乳石洞穴。' },
+            { id: 'd4-2', type: 'market', time: '11:00', title: '瑪哈拉碼頭文青市集', desc: 'Tha Maharaj，文青河岸市集。' },
             { id: 'd4-3', type: 'activity', time: '13:00', title: '湄南河遊船', desc: '搭船欣賞昭披耶河畔風光。' },
             { id: 'd4-4', type: 'shopping', time: '15:00', title: 'ICONSIAM 暹羅天地', desc: '曼谷必逛地標級購物中心。' },
             { id: 'd4-5', type: 'food', time: '18:00', title: '喬德夜市', desc: '網紅美食集散地。' },
@@ -299,8 +301,8 @@ const ItineraryScreen: React.FC = () => {
 
                 {/* Title and Info */}
                 <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-zen-text tracking-wide mb-1 leading-snug">{currentLocationName}</h2>
-                    <p className="text-xs text-zen-text-light mb-2">{selectedItem.desc}</p>
+                    <h2 className="text-2xl font-bold text-zen-text tracking-wide mb-2 leading-snug">{currentLocationName}</h2>
+                    <p className="text-sm text-zen-text-light mb-3 leading-relaxed break-all whitespace-pre-wrap px-4">{selectedItem.desc}</p>
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-zen-rock/10 shadow-sm">
                         <span className="material-symbols-outlined text-[14px] text-zen-moss">location_on</span>
                         <span className="text-[10px] font-bold text-zen-text-light">{selectedItem.location || '暫無詳細位置'}</span>

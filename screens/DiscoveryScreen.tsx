@@ -41,7 +41,8 @@ const FULL_ITINERARY_DATA: any = {
             { id: 'd3-1', type: 'relax', time: '10:00', title: '飯店設施 / 華欣海灘', desc: '享受度假村設施，或漫步於白沙灘。' },
             { id: 'd3-2', type: 'activity', time: '13:00', title: '皇家火車站', desc: '泰國最美火車站，古色古香的柚木建築。' },
             { id: 'd3-3', type: 'activity', time: '15:00', title: '駱駝共和國', desc: 'Camel Republic，摩洛哥風格主題樂園。', img: 'https://images.unsplash.com/photo-1544669528-9844a4913c32?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
-            { id: 'd3-6', type: 'market', time: '18:00', title: '華欣夜市', desc: '晚餐自費，體驗當地熱鬧氛圍。' },
+            { id: 'd3-4', type: 'food', time: '16:30', title: '網美海景祕密咖啡廳', desc: '享受無敵海景下午茶，拍照打卡聖地。' },
+            { id: 'd3-6', type: 'market', time: '18:00', title: '華欣夜市', desc: '晚餐自費，體驗當地熱鬧氛圍。', img: 'https://images.unsplash.com/photo-1533659828870-95ee305cee3e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
         ]
     },
     'D4': {
@@ -50,6 +51,7 @@ const FULL_ITINERARY_DATA: any = {
         reminder: '拷龍洞禁止攜帶食物與塑膠袋 (防野猴)。',
         items: [
             { id: 'd4-1', type: 'nature', time: '09:00', title: '拷龍洞', desc: '天然鐘乳石洞穴。注意：防野猴搶食。', img: 'https://images.unsplash.com/photo-1596727147705-01a29c15332a?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
+            { id: 'd4-2', type: 'market', time: '11:00', title: '瑪哈拉碼頭文青市集', desc: 'Tha Maharaj，充滿文藝氣息的河岸市集。', img: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
             { id: 'd4-3', type: 'activity', time: '13:00', title: '湄南河遊船', desc: '搭船欣賞昭披耶河畔風光。' },
             { id: 'd4-4', type: 'shopping', time: '15:00', title: 'ICONSIAM 暹羅天地', desc: '曼谷必逛地標級購物中心，室內水上市場。', img: 'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80' },
             { id: 'd4-5', type: 'food', time: '18:00', title: '喬德夜市', desc: 'Jodd Fairs，網紅美食集散地。' },
@@ -96,7 +98,10 @@ const COORDINATE_MAP: Record<string, [number, number]> = {
     '皇家火車站': [12.567, 99.955],
     '駱駝共和國': [12.780, 99.970], // Cha-Am
     '華欣夜市': [12.572, 99.957],
+    '網美海景祕密咖啡廳': [12.750, 99.970],
     '拷龍洞': [13.111, 99.938],
+    '瑪哈拉碼頭文青市集': [13.754, 100.489],
+    '湄南河遊船': [13.730, 100.510],
 };
 
 // Helper to create custom div icons
@@ -231,11 +236,17 @@ const DiscoveryScreen: React.FC = () => {
                             reconstructed[dayKey].items = [];
                         }
 
+                        // Map DB 'description' to UI 'desc'
+                        const uiItem = {
+                            ...item,
+                            desc: item.description || item.desc
+                        };
+
                         const existingIdx = reconstructed[dayKey].items.findIndex((i: any) => i.id === item.id);
                         if (existingIdx >= 0) {
-                            reconstructed[dayKey].items[existingIdx] = item;
+                            reconstructed[dayKey].items[existingIdx] = uiItem;
                         } else {
-                            reconstructed[dayKey].items.push(item);
+                            reconstructed[dayKey].items.push(uiItem);
                         }
                     });
 
@@ -514,7 +525,7 @@ const DiscoveryScreen: React.FC = () => {
                                                                     className="text-xs text-zen-text-light w-full h-12 mt-1 bg-transparent border-b border-zen-moss/30 focus:outline-none resize-none"
                                                                 />
                                                             ) : (
-                                                                <p className="text-xs text-zen-text-light leading-relaxed font-light mt-1 w-full break-words line-clamp-2">{item.desc}</p>
+                                                                <p className="text-xs text-zen-text-light leading-relaxed font-light mt-1 w-full break-all whitespace-pre-wrap">{item.desc}</p>
                                                             )}
                                                         </div>
                                                     </div>

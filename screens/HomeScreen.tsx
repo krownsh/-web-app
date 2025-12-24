@@ -908,7 +908,6 @@ export const HomeScreen: React.FC = () => {
                                 </div>
                                 <span className="text-[8px] font-bold text-zen-text-light uppercase tracking-widest scale-90 whitespace-nowrap">集合地點</span>
                                 <h4 className="text-xs font-bold text-zen-text leading-tight px-0.5 line-clamp-2 w-full break-words">{activeItem.location}</h4>
-                                <p className="text-[9px] text-zen-text-light mt-0.5 leading-none w-full truncate px-1">{activeItem.note}</p>
                             </div>
 
                             <button
@@ -1097,39 +1096,88 @@ export const HomeScreen: React.FC = () => {
 
                         {/* Options */}
                         <div className="p-6 flex flex-col gap-4">
-                            {/* Voice */}
-                            <a
-                                href="https://translate.google.com/?sl=th&tl=zh-TW&op=translate"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-zen-rock shadow-sm active:scale-95 transition-transform group"
-                            >
-                                <div className="w-12 h-12 rounded-full bg-zen-blue/10 text-zen-blue flex items-center justify-center shrink-0 group-active:bg-zen-blue group-active:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-[24px]">mic</span>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-base font-bold text-zen-text">語音翻譯</p>
-                                    <p className="text-xs text-zen-text-light">即時語音對話翻譯</p>
-                                </div>
-                                <span className="material-symbols-outlined text-zen-rock">arrow_forward_ios</span>
-                            </a>
+                            {/* Script for App Launch */}
+                            {(() => {
+                                const handleAppLaunch = (type: 'translate' | 'lens') => {
+                                    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+                                    const isAndroid = /android/i.test(userAgent);
+                                    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
 
-                            {/* Camera */}
-                            <a
-                                href="https://translate.google.com/?sl=th&tl=zh-TW&op=images"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-zen-rock shadow-sm active:scale-95 transition-transform group"
-                            >
-                                <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center shrink-0 group-active:bg-purple-500 group-active:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-[24px]">photo_camera</span>
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-base font-bold text-zen-text">相機翻譯 (拍照)</p>
-                                    <p className="text-xs text-zen-text-light">拍攝菜單或路牌</p>
-                                </div>
-                                <span className="material-symbols-outlined text-zen-rock">arrow_forward_ios</span>
-                            </a>
+                                    let appUrl = '';
+                                    let storeUrl = '';
+
+                                    if (type === 'translate') {
+                                        appUrl = 'googletranslate://?sl=th&tl=zh-TW';
+                                        if (isAndroid) {
+                                            storeUrl = 'https://play.google.com/store/apps/details?id=com.google.android.apps.translate';
+                                        } else if (isIOS) {
+                                            storeUrl = 'https://apps.apple.com/app/google-translate/id414706506';
+                                        } else {
+                                            // Desktop
+                                            window.open('https://translate.google.com/?sl=th&tl=zh-TW', '_blank');
+                                            return;
+                                        }
+                                    } else if (type === 'lens') {
+                                        if (isAndroid) {
+                                            appUrl = 'googlelens://';
+                                            storeUrl = 'https://play.google.com/store/apps/details?id=com.google.ar.lens';
+                                        } else if (isIOS) {
+                                            // iOS gets Google App
+                                            appUrl = 'googleapp://';
+                                            storeUrl = 'https://apps.apple.com/app/google/id284815942';
+                                        } else {
+                                            // Desktop
+                                            window.open('https://lens.google.com/', '_blank');
+                                            return;
+                                        }
+                                    }
+
+                                    const start = Date.now();
+                                    // Try open app
+                                    window.location.href = appUrl;
+
+                                    // Fallback to store
+                                    setTimeout(() => {
+                                        if (Date.now() - start < 1500) {
+                                            window.location.href = storeUrl;
+                                        }
+                                    }, 1000);
+                                };
+
+                                return (
+                                    <>
+                                        {/* Voice */}
+                                        <button
+                                            onClick={() => handleAppLaunch('translate')}
+                                            className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-zen-rock shadow-sm active:scale-95 transition-transform group text-left w-full"
+                                        >
+                                            <div className="w-12 h-12 rounded-full bg-zen-blue/10 text-zen-blue flex items-center justify-center shrink-0 group-active:bg-zen-blue group-active:text-white transition-colors">
+                                                <span className="material-symbols-outlined text-[24px]">mic</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-base font-bold text-zen-text">語音翻譯 (Google 翻譯)</p>
+                                                <p className="text-xs text-zen-text-light">開啟 App 進行對話翻譯</p>
+                                            </div>
+                                            <span className="material-symbols-outlined text-zen-rock">arrow_forward_ios</span>
+                                        </button>
+
+                                        {/* Camera */}
+                                        <button
+                                            onClick={() => handleAppLaunch('lens')}
+                                            className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-zen-rock shadow-sm active:scale-95 transition-transform group text-left w-full"
+                                        >
+                                            <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-500 flex items-center justify-center shrink-0 group-active:bg-purple-500 group-active:text-white transition-colors">
+                                                <span className="material-symbols-outlined text-[24px]">photo_camera</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-base font-bold text-zen-text">相機翻譯 (Google Lens)</p>
+                                                <p className="text-xs text-zen-text-light">開啟 Google 智慧鏡頭 (iOS 為 Google App)</p>
+                                            </div>
+                                            <span className="material-symbols-outlined text-zen-rock">arrow_forward_ios</span>
+                                        </button>
+                                    </>
+                                );
+                            })()}
 
                             {/* App Download Link */}
                             <div className="mt-2 text-center">
