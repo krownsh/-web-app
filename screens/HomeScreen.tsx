@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SwipeableRow from '../components/SwipeableRow';
 import { Link, useNavigate } from 'react-router-dom';
 import { SupabaseService } from '../services/SupabaseService';
 import { MustBuyItem, ChecklistStatus, ItineraryItem } from '../types';
@@ -277,7 +278,7 @@ export const HomeScreen: React.FC = () => {
                     const itemsWithLoc = loc.mustBuy.map((item: any) => ({
                         ...item,
                         item_name: item.name,
-                        location_ref: loc.locationName || '未知地點',
+                        location_ref: loc.name || '未知地點',
                         visibility: 'public'
                     }));
                     allItems = [...allItems, ...itemsWithLoc];
@@ -332,14 +333,44 @@ export const HomeScreen: React.FC = () => {
         setIsAddMustBuyModalOpen(false);
     };
 
-    const toggleCheck = async (itemId: string | number) => {
-        const nextChecked = !checkedItems[itemId];
+    const toggleCheck = (id: string) => {
+        const newStatus = !checkedItems[id];
+        setCheckedItems(prev => ({ ...prev, [id]: newStatus }));
+        SupabaseService.syncChecklistStatus(id, myUserId, newStatus).catch(console.error);
+    };
 
-        // Optimistic update
-        setCheckedItems(prev => ({ ...prev, [itemId]: nextChecked }));
+    const handleDeleteMustBuy = async (id: string, e?: any) => {
+        if (e) e.stopPropagation();
 
-        // Sync to cloud
-        await SupabaseService.syncChecklistStatus(itemId.toString(), myUserId, nextChecked);
+        // Optimistic UI
+        setMustBuyItems(prev => prev.filter(i => i.id !== id));
+
+        // Delete from LocalStorage if needed
+        let localData = localStorage.getItem('zen_guide_data_v1');
+        if (localData) {
+            const parsed = JSON.parse(localData);
+            let modified = false;
+            Object.keys(parsed).forEach(locKey => {
+                const loc = parsed[locKey];
+                if (loc.mustBuy) {
+                    const originalLen = loc.mustBuy.length;
+                    loc.mustBuy = loc.mustBuy.filter((i: any) => i.id !== id);
+                    if (loc.mustBuy.length !== originalLen) modified = true;
+                }
+            });
+            if (modified) {
+                localStorage.setItem('zen_guide_data_v1', JSON.stringify(parsed));
+            }
+        }
+
+        // Attempt Supabase delete (if it's a UUID/Supabase ID)
+        if (id.length > 20) { // UUID heuristic
+            try {
+                await SupabaseService.deleteRecord('must_buys', id);
+            } catch (e) {
+                console.error("Failed to delete from Supabase", e);
+            }
+        }
     };
     // ---------------------------
 
@@ -797,7 +828,7 @@ export const HomeScreen: React.FC = () => {
                             </div>
                         )}
                         {/* Left: Scroll Wheel (80% width) */}
-                        <div className="w-[80%] h-full relative border-r border-zen-rock/50 bg-white/30">
+                        <div className="w-[65%] h-full relative border-r border-zen-rock/50 bg-white/30">
                             {/* Fade Masks */}
                             <div className="absolute top-0 left-0 w-full h-16 bg-gradient-to-b from-white/90 to-transparent z-20 pointer-events-none"></div>
                             <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white/90 to-transparent z-20 pointer-events-none"></div>
@@ -852,7 +883,7 @@ export const HomeScreen: React.FC = () => {
                         </div>
 
                         {/* Right: Meeting Point Panel (20% width) */}
-                        <div className="w-[20%] flex flex-col items-center justify-center p-1 bg-white/40">
+                        <div className="w-[35%] flex flex-col items-center justify-center p-1 bg-white/40">
                             <div className="flex flex-col items-center text-center gap-0.5 animate-float-soft w-full">
                                 <div className="w-8 h-8 rounded-full bg-zen-moss/10 flex items-center justify-center text-zen-moss mb-0.5">
                                     <span className="material-symbols-outlined text-[18px]">location_on</span>
@@ -910,46 +941,47 @@ export const HomeScreen: React.FC = () => {
                                 mustBuyItems.map((item, i) => {
                                     const isChecked = checkedItems[item.id];
                                     return (
-                                        <div
-                                            key={item.id || i}
-                                            onClick={() => toggleCheck(item.id)}
-                                            className={`flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 cursor-pointer ${isChecked ? 'bg-gray-100 border-transparent opacity-60' : 'bg-white border-white shadow-sm'}`}
-                                        >
-                                            {/* Checkbox */}
-                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isChecked ? 'bg-zen-moss border-zen-moss' : 'border-zen-rock/30 bg-white'}`}>
-                                                {isChecked && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
-                                            </div>
-
-                                            {/* Content */}
-                                            <div className="flex-1 min-w-0">
-                                                <p className={`text-base font-bold text-zen-text truncate transition-all ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
-                                                    {item.item_name}
-                                                </p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[10px] font-bold text-zen-moss bg-zen-moss/10 px-1.5 py-0.5 rounded-md">
-                                                        ฿{item.price}
-                                                    </span>
-                                                    {item.location_ref && (
-                                                        <span className="text-[10px] text-zen-text-light truncate max-w-[120px]">
-                                                            @{item.location_ref}
-                                                        </span>
-                                                    )}
-                                                    {item.visibility === 'private' && (
-                                                        <span className="text-[10px] font-bold text-zen-brown bg-zen-brown/10 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                                                            <span className="material-symbols-outlined text-[10px]">lock</span>
-                                                            私人
-                                                        </span>
-                                                    )}
+                                        <SwipeableRow key={item.id || i} onDelete={() => handleDeleteMustBuy(item.id)}>
+                                            <div
+                                                onClick={() => toggleCheck(item.id)}
+                                                className={`flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 cursor-pointer ${isChecked ? 'bg-gray-100 border-transparent opacity-60' : 'bg-white border-white shadow-sm'}`}
+                                            >
+                                                {/* Checkbox */}
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isChecked ? 'bg-zen-moss border-zen-moss' : 'border-zen-rock/30 bg-white'}`}>
+                                                    {isChecked && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                                                 </div>
-                                            </div>
 
-                                            {/* Thumbnail (if exists) */}
-                                            {item.image_url && (
-                                                <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0">
-                                                    <img src={item.image_url} alt={item.item_name} className={`w-full h-full object-cover transition-all ${isChecked ? 'grayscale' : ''}`} />
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={`text-base font-bold text-zen-text truncate transition-all ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
+                                                        {item.item_name}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-[10px] font-bold text-zen-moss bg-zen-moss/10 px-1.5 py-0.5 rounded-md">
+                                                            ฿{item.price}
+                                                        </span>
+                                                        {item.location_ref && (
+                                                            <span className="text-[10px] text-zen-text-light truncate max-w-[120px]">
+                                                                @{item.location_ref}
+                                                            </span>
+                                                        )}
+                                                        {item.visibility === 'private' && (
+                                                            <span className="text-[10px] font-bold text-zen-brown bg-zen-brown/10 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                                                                <span className="material-symbols-outlined text-[10px]">lock</span>
+                                                                私人
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
+
+                                                {/* Thumbnail (if exists) */}
+                                                {item.image_url && (
+                                                    <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0">
+                                                        <img src={item.image_url} alt={item.item_name} className={`w-full h-full object-cover transition-all ${isChecked ? 'grayscale' : ''}`} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </SwipeableRow>
                                     );
                                 })
                             ) : (

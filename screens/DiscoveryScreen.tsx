@@ -250,7 +250,8 @@ const DiscoveryScreen: React.FC = () => {
     }, []);
 
     // Update Item Function
-    const updateItem = (id: string, field: string, value: string) => {
+    const updateItem = async (id: string, field: string, value: string) => {
+        // 1. Optimistic Update
         setFullItinerary((prev: any) => ({
             ...prev,
             [activeDay]: {
@@ -260,6 +261,17 @@ const DiscoveryScreen: React.FC = () => {
                 )
             }
         }));
+
+        // 2. Sync to Supabase
+        // Map local field names to DB column names
+        let dbField = field;
+        if (field === 'desc') dbField = 'description';
+
+        try {
+            await SupabaseService.updateRecord('itineraries', id, { [dbField]: value });
+        } catch (e) {
+            console.error("Failed to sync item update", e);
+        }
     };
 
     // Filter Items for Map and List
@@ -399,9 +411,6 @@ const DiscoveryScreen: React.FC = () => {
                                 </span>
                                 <h2 className="text-2xl font-bold text-zen-text tracking-wide truncate">{selectedLocation.title}</h2>
                             </div>
-                            <button className="flex items-center justify-center size-10 rounded-full bg-zen-bg border border-zen-rock shadow-sm text-zen-text-light active:bg-zen-moss active:text-white transition-colors shrink-0">
-                                <span className="material-symbols-outlined">directions</span>
-                            </button>
                         </div>
                     </div>
                 ) : (
@@ -494,7 +503,7 @@ const DiscoveryScreen: React.FC = () => {
                                                                     className="text-base font-bold text-zen-text w-full bg-transparent border-b border-zen-moss/30 focus:outline-none"
                                                                 />
                                                             ) : (
-                                                                <h4 className="text-base font-bold text-zen-text leading-tight">{item.title}</h4>
+                                                                <h4 className="text-base font-bold text-zen-text leading-tight break-words">{item.title}</h4>
                                                             )}
 
                                                             {isEditing ? (
@@ -504,7 +513,7 @@ const DiscoveryScreen: React.FC = () => {
                                                                     className="text-xs text-zen-text-light w-full h-12 mt-1 bg-transparent border-b border-zen-moss/30 focus:outline-none resize-none"
                                                                 />
                                                             ) : (
-                                                                <p className="text-xs text-zen-text-light leading-relaxed font-light mt-1 w-11/12">{item.desc}</p>
+                                                                <p className="text-xs text-zen-text-light leading-relaxed font-light mt-1 w-full break-words line-clamp-2">{item.desc}</p>
                                                             )}
                                                         </div>
                                                     </div>

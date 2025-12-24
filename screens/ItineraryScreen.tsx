@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SwipeableRow from '../components/SwipeableRow';
 import { Link, useLocation } from 'react-router-dom';
 
 // ----------------------------------------------------------------------
@@ -218,6 +219,16 @@ const ItineraryScreen: React.FC = () => {
         setShowItemModal(false);
     };
 
+    const handleDeleteLocalItem = (type: 'links' | 'mustBuy', id: string) => {
+        setAllGuides(prev => ({
+            ...prev,
+            [currentLocationName]: {
+                ...prev[currentLocationName],
+                [type]: (prev[currentLocationName][type] || []).filter((i: any) => i.id !== id)
+            }
+        }));
+    };
+
     // Auto-scroll to selected item
     const scrollRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -315,24 +326,25 @@ const ItineraryScreen: React.FC = () => {
                         </button>
 
                         {currentGuide.links.map((link) => (
-                            <a
-                                key={link.id}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="shrink-0 size-28 p-3 rounded-2xl bg-white border border-zen-rock/10 shadow-sm flex flex-col justify-between active:scale-95 transition-transform"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className={`size-7 rounded-full bg-zen-bg flex items-center justify-center ${link.color}`}>
-                                        <span className="material-symbols-outlined text-[16px]">{link.icon}</span>
+                            <SwipeableRow key={link.id} onDelete={() => handleDeleteLocalItem('links', link.id)}>
+                                <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block shrink-0 h-28 w-28 p-3 rounded-2xl bg-white border border-zen-rock/10 shadow-sm flex flex-col justify-between active:scale-95 transition-transform"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className={`size-7 rounded-full bg-zen-bg flex items-center justify-center ${link.color}`}>
+                                            <span className="material-symbols-outlined text-[16px]">{link.icon}</span>
+                                        </div>
+                                        <span className="material-symbols-outlined text-zen-rock/30 text-[16px]">open_in_new</span>
                                     </div>
-                                    <span className="material-symbols-outlined text-zen-rock/30 text-[16px]">open_in_new</span>
-                                </div>
-                                <div>
-                                    <h3 className="text-xs font-bold text-zen-text leading-tight line-clamp-2 mb-1">{link.title}</h3>
-                                    <span className="text-[9px] text-zen-text-light bg-zen-mist px-1.5 py-0.5 rounded text-end block w-fit">{link.source}</span>
-                                </div>
-                            </a>
+                                    <div>
+                                        <h3 className="text-xs font-bold text-zen-text leading-tight line-clamp-2 mb-1">{link.title}</h3>
+                                        <span className="text-[9px] text-zen-text-light bg-zen-mist px-1.5 py-0.5 rounded text-end block w-fit">{link.source}</span>
+                                    </div>
+                                </a>
+                            </SwipeableRow>
                         ))}
                     </div>
                 </div>
@@ -361,25 +373,27 @@ const ItineraryScreen: React.FC = () => {
                         )}
 
                         {currentGuide.mustBuy.map((item) => (
-                            <div key={item.id} className="group p-4 rounded-2xl bg-white border border-zen-rock/20 shadow-sm flex items-start gap-4 active:scale-[0.99] transition-all">
-                                <button className="size-5 mt-1 rounded-full border-2 border-zen-rock/30 shrink-0 group-active:bg-zen-moss group-active:border-zen-moss transition-colors"></button>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="text-base font-bold text-zen-text leading-tight">{item.name}</h3>
-                                        <div className="px-2 py-0.5 rounded-md bg-zen-bg font-bold text-xs text-zen-moss font-display border border-zen-rock/20">
-                                            {item.price}
+                            <SwipeableRow key={item.id} onDelete={() => handleDeleteLocalItem('mustBuy', item.id)}>
+                                <div className="group p-4 rounded-2xl bg-white border border-zen-rock/20 shadow-sm flex items-start gap-4 active:scale-[0.99] transition-all">
+                                    <button className="size-5 mt-1 rounded-full border-2 border-zen-rock/30 shrink-0 group-active:bg-zen-moss group-active:border-zen-moss transition-colors"></button>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="text-base font-bold text-zen-text leading-tight">{item.name}</h3>
+                                            <div className="px-2 py-0.5 rounded-md bg-zen-bg font-bold text-xs text-zen-moss font-display border border-zen-rock/20">
+                                                {item.price}
+                                            </div>
                                         </div>
+                                        <p className="text-xs text-zen-text-light mt-1.5 leading-relaxed">{item.desc}</p>
+                                        {item.tag && (
+                                            <div className="mt-2">
+                                                <span className="inline-block text-[9px] font-bold text-white bg-zen-moss px-2 py-0.5 rounded-full shadow-sm">
+                                                    #{item.tag}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-zen-text-light mt-1.5 leading-relaxed">{item.desc}</p>
-                                    {item.tag && (
-                                        <div className="mt-2">
-                                            <span className="inline-block text-[9px] font-bold text-white bg-zen-moss px-2 py-0.5 rounded-full shadow-sm">
-                                                #{item.tag}
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
+                            </SwipeableRow>
                         ))}
                     </div>
                 </div>
