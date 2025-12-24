@@ -259,7 +259,7 @@ const ItineraryScreen: React.FC = () => {
                 {/* Horizontal Timeline List (ALL Items) */}
                 <div
                     ref={scrollRef}
-                    className="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-2 items-end h-[60px]"
+                    className="flex gap-2 overflow-x-auto no-scrollbar px-4 pb-2 items-end h-[70px]"
                 >
                     {ALL_ITEMS.map((item: any, index: number) => {
                         const isSelected = selectedId === item.id;
@@ -275,8 +275,8 @@ const ItineraryScreen: React.FC = () => {
                                     id={`nav-item-${item.id}`}
                                     onClick={() => setSelectedId(item.id)}
                                     className={`shrink-0 flex flex-col justify-center items-start px-3 py-1.5 rounded-lg transition-all duration-300 border ${isSelected
-                                        ? 'bg-zen-moss text-white border-zen-moss shadow-md scale-100 h-[50px]'
-                                        : 'bg-white text-zen-text border-zen-rock/10 hover:border-zen-moss/30 h-[40px]'
+                                        ? 'bg-zen-moss text-white border-zen-moss shadow-md scale-100 h-[56px]'
+                                        : 'bg-white text-zen-text border-zen-rock/10 hover:border-zen-moss/30 h-[46px]'
                                         }`}
                                 >
                                     <div className="flex items-center gap-2 w-full">

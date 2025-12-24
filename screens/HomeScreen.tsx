@@ -821,14 +821,14 @@ export const HomeScreen: React.FC = () => {
                         </h3>
                     </div>
 
-                    <div className="glass-panel rounded-organic shadow-mist overflow-hidden h-[240px] flex relative">
+                    <div className="glass-panel rounded-organic shadow-mist overflow-hidden h-[340px] flex flex-col relative">
                         {isItineraryLoading && (
                             <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-30 flex items-center justify-center">
                                 <div className="size-6 border-2 border-zen-moss/20 border-t-zen-moss rounded-full animate-spin"></div>
                             </div>
                         )}
                         {/* Left: Scroll Wheel (80% width) */}
-                        <div className="w-[65%] h-full relative border-r border-zen-rock/50 bg-white/30">
+                        <div className="w-full h-[65%] relative border-b border-zen-rock/50 bg-white/30">
                             {/* Fade Masks */}
                             <div className="absolute top-0 left-0 w-full h-16 bg-gradient-to-b from-white/90 to-transparent z-20 pointer-events-none"></div>
                             <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white/90 to-transparent z-20 pointer-events-none"></div>
@@ -883,7 +883,7 @@ export const HomeScreen: React.FC = () => {
                         </div>
 
                         {/* Right: Meeting Point Panel (20% width) */}
-                        <div className="w-[35%] flex flex-col items-center justify-center p-1 bg-white/40">
+                        <div className="w-full h-[35%] flex flex-col items-center justify-center p-2 bg-white/40">
                             <div className="flex flex-col items-center text-center gap-0.5 animate-float-soft w-full">
                                 <div className="w-8 h-8 rounded-full bg-zen-moss/10 flex items-center justify-center text-zen-moss mb-0.5">
                                     <span className="material-symbols-outlined text-[18px]">location_on</span>
@@ -924,7 +924,7 @@ export const HomeScreen: React.FC = () => {
                             <span className="text-[10px] text-zen-text-light font-bold uppercase tracking-wider">我的清單</span>
                             <button
                                 onClick={() => setIsAddMustBuyModalOpen(true)}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-purple-50 text-purple-500 font-bold text-xs active:bg-purple-100 transition-colors"
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-zen-moss/10 text-zen-moss font-bold text-xs active:bg-zen-moss/20 transition-colors"
                             >
                                 <span className="material-symbols-outlined text-[16px]">add</span>
                                 新增項目

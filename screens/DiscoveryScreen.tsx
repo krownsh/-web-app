@@ -350,15 +350,6 @@ const DiscoveryScreen: React.FC = () => {
                         <span className="material-symbols-outlined text-[20px]">arrow_back</span>
                     </Link>
 
-                    {/* Edit Toggle Button */}
-                    <button
-                        onClick={() => setIsEditing(!isEditing)}
-                        className={`pointer-events-auto flex items-center justify-center size-10 rounded-full transition-all shadow-sm ${isEditing ? 'bg-zen-moss text-white shadow-glow' : 'bg-white/80 backdrop-blur-md text-zen-moss active:bg-zen-moss/10'}`}
-                    >
-                        <span className="material-symbols-outlined font-light text-[20px]">
-                            {isEditing ? 'check' : 'edit'}
-                        </span>
-                    </button>
                 </div>
 
                 <div className="pointer-events-auto flex justify-center">
@@ -399,6 +390,16 @@ const DiscoveryScreen: React.FC = () => {
                     onTouchMove={handleTouchMove}
                 >
                     <div className="w-12 h-1.5 bg-zen-rock/50 rounded-full"></div>
+
+                    {/* Edit Toggle Button (Moved) */}
+                    <button
+                        onClick={() => setIsEditing(!isEditing)}
+                        className={`absolute top-4 right-6 flex items-center justify-center size-10 rounded-full transition-all shadow-sm z-50 ${isEditing ? 'bg-zen-moss text-white shadow-glow' : 'bg-white border border-zen-rock/50 text-zen-moss active:bg-zen-moss/10'}`}
+                    >
+                        <span className="material-symbols-outlined font-light text-[20px]">
+                            {isEditing ? 'check' : 'edit'}
+                        </span>
+                    </button>
                 </div>
 
                 {/* Location Header - Currently Selected on Map */}
