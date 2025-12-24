@@ -374,11 +374,45 @@ export const HomeScreen: React.FC = () => {
     };
     // ---------------------------
 
+    // --- Active Itinerary Sync Logic ---
+    const isUserInteraction = useRef(false);
+    const programmaticScroll = useRef(false);
+
+    // Sync 'is_current' on load
+    useEffect(() => {
+        const syncInitial = async () => {
+            if (wheelData.length === 0) return;
+            try {
+                const current = await SupabaseService.getCurrentItinerary();
+                if (current) {
+                    const idx = wheelData.findIndex((i: any) => i.id === current.id);
+                    if (idx !== -1 && idx !== activeIndex) {
+                        programmaticScroll.current = true;
+                        setActiveIndex(idx);
+                        // Physically scroll to the item (Instant snap)
+                        if (scrollRef.current) {
+                            scrollRef.current.scrollTo({ top: idx * 72, behavior: 'instant' });
+                        }
+                    }
+                }
+            } catch (e) { console.error(e); }
+        };
+        syncInitial();
+    }, [wheelData, currentDayKey]);
+
     // Scroll Handler for the Wheel
     const handleScroll = () => {
         if (scrollRef.current) {
-            // Based on the new design, item height might include margin, let's assume 80px total height per visual slot
-            // However, keeping calculation simple: 
+            // Ignore programmatic scrolls for interaction tracking
+            if (programmaticScroll.current) {
+                // We don't reset programmaticScroll here immediately because scroll events might fire multiple times.
+                // Resetting it in a timeout or relying on the robust check below is safer.
+                // Actually, for snap scrolling, it settles. 
+                // Let's just set a flag to ignore logic if needed, but here we just need to know if we should setActiveIndex.
+            } else {
+                isUserInteraction.current = true;
+            }
+
             const itemHeight = 72; // Adjusted height for better spacing
             const scrollTop = scrollRef.current.scrollTop;
             const index = Math.round(scrollTop / itemHeight);
@@ -392,101 +426,21 @@ export const HomeScreen: React.FC = () => {
         }
     };
 
-    // Center the initial active item on mount
+    // Reset programmatic flag after render/scroll settles
     useEffect(() => {
-        if (scrollRef.current) {
-            const itemHeight = 72;
-            scrollRef.current.scrollTop = activeIndex * itemHeight;
+        if (programmaticScroll.current) {
+            const timer = setTimeout(() => {
+                programmaticScroll.current = false;
+            }, 500);
+            return () => clearTimeout(timer);
         }
-    }, []); // Run once
+    }, [activeIndex]);
 
-    const handleChange = (key: string, value: string) => {
-        setData(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleExport = () => {
-        const jsonString = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const href = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = href;
-        link.download = `zen_travel_backup_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(href);
-    };
-
-    const activeItem = wheelData[activeIndex] || wheelData[0] || { location: '', note: '' };
-
-    // --- Meeting Point Modal State ---
-    const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
-    const [meetingPointForm, setMeetingPointForm] = useState({ location: '', note: '' });
-
-    // Pre-fill form when opening or active item changes
-    useEffect(() => {
-        if (isMeetingModalOpen && activeItem) {
-            setMeetingPointForm({
-                location: activeItem.location || '',
-                note: activeItem.note || ''
-            });
-        }
-    }, [isMeetingModalOpen, activeItem]);
-
-    const handleUpdateMeetingPoint = async () => {
-        if (!activeItem || !activeItem.id) return;
-
-        // Optimistic Update
-        const updatedWheelData = [...wheelData];
-        if (updatedWheelData[activeIndex]) {
-            updatedWheelData[activeIndex] = {
-                ...updatedWheelData[activeIndex],
-                location: meetingPointForm.location,
-                note: meetingPointForm.note
-            };
-            setWheelData(updatedWheelData);
-        }
-
-        setIsMeetingModalOpen(false);
-
-        // Sync to DB
-        await SupabaseService.updateItinerary(activeItem.id, {
-            location: meetingPointForm.location,
-            description: meetingPointForm.note
-        });
-    };
-
-    // --- Active Itinerary Sync Logic ---
-    const [isSynced, setIsSynced] = useState(false);
-
-    // Sync 'is_current' on load
-    useEffect(() => {
-        const syncInitial = async () => {
-            if (wheelData.length === 0) return;
-            try {
-                const current = await SupabaseService.getCurrentItinerary();
-                if (current) {
-                    const idx = wheelData.findIndex((i: any) => i.id === current.id);
-                    if (idx !== -1 && idx !== activeIndex) {
-                        setActiveIndex(idx);
-                        // Physically scroll to the item (Instant snap)
-                        if (scrollRef.current) {
-                            scrollRef.current.scrollTo({ top: idx * 72, behavior: 'instant' });
-                        }
-                    }
-                }
-            } catch (e) { console.error(e); }
-            finally {
-                setIsSynced(true);
-            }
-        };
-        syncInitial();
-    }, [wheelData, currentDayKey]);
 
     // Debounce Update 'is_current' on scroll
     const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     useEffect(() => {
-        if (wheelData.length === 0 || !isSynced) return;
+        if (wheelData.length === 0 || !isUserInteraction.current) return;
 
         if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
 
@@ -498,7 +452,7 @@ export const HomeScreen: React.FC = () => {
         }, 1500);
 
         return () => { if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current); };
-    }, [activeIndex, wheelData, isSynced]);
+    }, [activeIndex, wheelData]);
 
     return (
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative pb-32">
