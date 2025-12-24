@@ -44,6 +44,10 @@ export const HomeScreen: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [showSOSModal, setShowSOSModal] = useState(false);
     const [showTranslateModal, setShowTranslateModal] = useState(false);
+
+
+    // --- Meeting Point Modal State ---
+    const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
     const [isAddMustBuyModalOpen, setIsAddMustBuyModalOpen] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -228,6 +232,8 @@ export const HomeScreen: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('zen_active_itinerary_index', activeIndex.toString());
     }, [activeIndex]);
+
+    const activeItem = wheelData[activeIndex] || wheelData[0] || { location: '', note: '' };
 
     // Initialize state from LocalStorage or Default
     const [data, setData] = useState(() => {
@@ -453,6 +459,59 @@ export const HomeScreen: React.FC = () => {
 
         return () => { if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current); };
     }, [activeIndex, wheelData]);
+
+    const handleChange = (key: string, value: string) => {
+        setData(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleExport = () => {
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const href = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = `zen_travel_backup_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+    };
+
+    // --- Meeting Point Modal State ---
+    const [meetingPointForm, setMeetingPointForm] = useState({ location: '', note: '' });
+
+    // Pre-fill form when opening or active item changes
+    useEffect(() => {
+        if (isMeetingModalOpen && activeItem) {
+            setMeetingPointForm({
+                location: activeItem.location || '',
+                note: activeItem.note || ''
+            });
+        }
+    }, [isMeetingModalOpen, activeItem]);
+
+    const handleUpdateMeetingPoint = async () => {
+        if (!activeItem || !activeItem.id) return;
+
+        // Optimistic Update
+        const updatedWheelData = [...wheelData];
+        if (updatedWheelData[activeIndex]) {
+            updatedWheelData[activeIndex] = {
+                ...updatedWheelData[activeIndex],
+                location: meetingPointForm.location,
+                note: meetingPointForm.note
+            };
+            setWheelData(updatedWheelData);
+        }
+
+        setIsMeetingModalOpen(false);
+
+        // Sync to DB
+        await SupabaseService.updateItinerary(activeItem.id, {
+            location: meetingPointForm.location,
+            description: meetingPointForm.note
+        });
+    };
 
     return (
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative pb-32">
