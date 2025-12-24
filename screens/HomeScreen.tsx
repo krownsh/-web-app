@@ -868,7 +868,7 @@ export const HomeScreen: React.FC = () => {
                                             }}
                                             className="h-[72px] flex items-center justify-center px-4 snap-center transition-all duration-300 ease-out"
                                         >
-                                            <div className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${isActive ? 'bg-zen-rock/50 shadow-inner' : 'bg-transparent'}`}>
+                                            <div className={`w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 ${isActive ? 'bg-zen-rock/50 shadow-inner' : 'bg-transparent'}`}>
                                                 <span className={`text-sm font-display tracking-wider shrink-0 transition-colors duration-300 ${isActive ? 'text-zen-moss font-bold' : 'text-zen-text-light font-medium'}`}>
                                                     {item.time}
                                                 </span>
