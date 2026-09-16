@@ -1,28 +1,13 @@
 {
-  "name": "zentravel-premium",
+  "name": "travel-apps",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.89.0",
-    "dotenv": "^17.2.3",
-    "leaflet": "1.9.4",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-leaflet": "4.2.1",
-    "react-router-dom": "6.22.3"
+    "dev:manila": "npm --prefix apps/manila-2026-09 run dev",
+    "dev:bangkok": "npm --prefix apps/bangkok-hua-hin-2025-12 run dev",
+    "build:manila": "npm --prefix apps/manila-2026-09 run build",
+    "build:bangkok": "npm --prefix apps/bangkok-hua-hin-2025-12 run build"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0",
-    "vite-plugin-pwa": "^1.2.0",
-    "wrangler": "^4.56.0"
+    "shadcn": "^4.21.0"
   }
 }

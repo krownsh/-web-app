@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 旅遊行程 Apps
 
-# Run and deploy your AI Studio app
+同一個 Git repo、同一個 Supabase 專案，兩個**完全獨立**的前端 App。沒有共用 UI、theme kit 或 runtime 切團層。
 
-This contains everything you need to run your app locally.
+| App | 目錄 | 資料庫前綴 | 團碼 | 開發埠 |
+| --- | --- | --- | --- | --- |
+| 馬尼拉三日 | `apps/manila-2026-09` | `zentravel_*` | MNL927 | 3001 |
+| 泰沃毛（曼谷／華欣） | `apps/bangkok-hua-hin-2025-12` | `thaiwomao_*` | BKK512 | 3000 |
 
-View your app in AI Studio: https://ai.studio/apps/temp/1
+## 開發
 
-## Run Locally
+```bash
+cd apps/manila-2026-09
+cp ../../.env.example .env   # 若還沒有
+npm install
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+```bash
+cd apps/bangkok-hua-hin-2025-12
+cp ../../.env.example .env
+npm install
+npm run dev
+```
 
+兩個 App 都只使用 publishable key，不要把 service_role 放進前端。
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+登入帳號來自共用的 `auth.users`。馬尼拉要先在 `zentravel_users` 註冊；泰沃毛要先在 `thaiwomao_users` 註冊，兩邊名單互不相通。
+
+## 資料庫
+
+Migration 放在 repo 根目錄 `supabase/migrations/`，套用到共用專案 `vjwiuimmifdcvgilhwie`。
