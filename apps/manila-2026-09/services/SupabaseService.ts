@@ -255,4 +255,158 @@ export const SupabaseService = {
         if (error) throw error;
         return data;
     },
+
+    async getMyGameClaim(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_my_game_claim', { p_trip_id: tripId });
+        if (error) throw error;
+        const row = (data || [])[0];
+        return row
+            ? {
+                  traveler_id: row.traveler_id as string,
+                  display_name: row.display_name as string,
+                  photo_url: row.photo_url as string | null,
+                  lottery_played_at: (row.lottery_played_at as string | null) || null,
+              }
+            : null;
+    },
+
+    async getUnclaimedTravelers(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_unclaimed_travelers', { p_trip_id: tripId });
+        if (error) throw error;
+        return (data || []) as { id: string; display_name: string; photo_url: string | null; sort_order: number }[];
+    },
+
+    async claimTraveler(tripId: string, travelerId: string) {
+        const { error } = await supabase.rpc('zentravel_claim_traveler', {
+            p_trip_id: tripId,
+            p_traveler_id: travelerId,
+        });
+        if (error) throw error;
+    },
+
+    async startGameDraw(tripId: string) {
+        const { error } = await supabase.rpc('zentravel_start_game_draw', { p_trip_id: tripId });
+        if (error) throw error;
+    },
+
+    async finishGameLottery(tripId: string) {
+        const { error } = await supabase.rpc('zentravel_finish_game_lottery', { p_trip_id: tripId });
+        if (error) throw error;
+    },
+
+    async getMyGameDraw(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_my_game_draw', { p_trip_id: tripId });
+        if (error) throw error;
+        const row = (data || [])[0];
+        return row
+            ? {
+                  drawer_id: row.drawer_id as string,
+                  angel_id: row.angel_id as string,
+                  devil_id: row.devil_id as string,
+                  angel_name: row.angel_name as string,
+                  devil_name: row.devil_name as string,
+                  angel_photo: row.angel_photo as string | null,
+                  devil_photo: row.devil_photo as string | null,
+              }
+            : null;
+    },
+
+    async getGameRevealInfo(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_game_reveal_info', { p_trip_id: tripId });
+        if (error) throw error;
+        const row = (data || [])[0];
+        return {
+            reveal_at: row?.reveal_at as string,
+            revealed: !!row?.revealed,
+        };
+    },
+
+    async getAllGameDraws(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_game_all_draws', { p_trip_id: tripId });
+        if (error) {
+            if (/not revealed/i.test(error.message)) return [];
+            throw error;
+        }
+        return (data || []) as {
+            drawer_id: string;
+            drawer_name: string;
+            drawer_photo: string | null;
+            angel_id: string;
+            angel_name: string;
+            angel_photo: string | null;
+            devil_id: string;
+            devil_name: string;
+            devil_photo: string | null;
+        }[];
+    },
+
+    async getGameWishes(tripId: string) {
+        const { data, error } = await supabase
+            .from('zentravel_game_wishes')
+            .select('traveler_id, body')
+            .eq('trip_id', tripId);
+        if (error) throw error;
+        return (data || []) as { traveler_id: string; body: string }[];
+    },
+
+    async addGameWish(tripId: string, travelerId: string, body: string) {
+        const { error } = await supabase.from('zentravel_game_wishes').insert({
+            trip_id: tripId,
+            traveler_id: travelerId,
+            body,
+        });
+        if (error) throw error;
+    },
+
+    async getDevilPhotos(tripId: string) {
+        const { data, error } = await supabase
+            .from('zentravel_game_devil_photos')
+            .select('id, target_id, uploader_id, storage_path, created_at')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []) as { id: string; target_id: string; uploader_id: string; storage_path: string; created_at: string }[];
+    },
+
+    async signedGamePhoto(path: string) {
+        const { data, error } = await supabase.storage.from('zentravel-game-photos').createSignedUrl(path, 3600);
+        if (error) throw error;
+        return data.signedUrl;
+    },
+
+    async uploadDevilPhoto(tripId: string, userId: string, file: Blob) {
+        const name = `${tripId}/${userId}/${crypto.randomUUID()}.jpg`;
+        const { error: upErr } = await supabase.storage.from('zentravel-game-photos').upload(name, file, {
+            contentType: 'image/jpeg',
+            upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { error } = await supabase.rpc('zentravel_add_devil_photo', {
+            p_trip_id: tripId,
+            p_storage_path: name,
+        });
+        if (error) throw error;
+    },
+
+    async getMyGuess(tripId: string, userId: string) {
+        const { data, error } = await supabase
+            .from('zentravel_game_guesses')
+            .select('guessed_angel_id, guessed_devil_id')
+            .eq('trip_id', tripId)
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (error) throw error;
+        return data as { guessed_angel_id: string | null; guessed_devil_id: string | null } | null;
+    },
+
+    async saveGuess(tripId: string, userId: string, angelId: string | null, devilId: string | null) {
+        const { error } = await supabase.from('zentravel_game_guesses').upsert({
+            trip_id: tripId,
+            user_id: userId,
+            guessed_angel_id: angelId,
+            guessed_devil_id: devilId,
+            updated_at: new Date().toISOString(),
+        });
+        if (error) throw error;
+    },
 };

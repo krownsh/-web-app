@@ -11,13 +11,23 @@ interface SessionState {
     enrollThisApp: () => Promise<void>;
 }
 
+export type GameClaim = {
+    traveler_id: string;
+    display_name: string;
+    photo_url: string | null;
+    lottery_played_at: string | null;
+};
+
 interface TripState {
     trips: Trip[];
     trip: Trip | null;
     days: TripDay[];
     role: 'owner' | 'member' | null;
     loading: boolean;
+    gameClaim: GameClaim | null;
+    claimReady: boolean;
     refresh: () => Promise<void>;
+    refreshClaim: () => Promise<void>;
     joinWithCode: (code: string) => Promise<void>;
 }
 
@@ -106,6 +116,30 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [days, setDays] = useState<TripDay[]>([]);
     const [role, setRole] = useState<'owner' | 'member' | null>(null);
     const [loading, setLoading] = useState(true);
+    const [gameClaim, setGameClaim] = useState<GameClaim | null>(null);
+    const [claimReady, setClaimReady] = useState(false);
+
+    const refreshClaim = useCallback(async () => {
+        if (!user || !enrolled) {
+            setGameClaim(null);
+            setClaimReady(true);
+            return;
+        }
+        if (!trip?.id) {
+            setGameClaim(null);
+            setClaimReady(false);
+            return;
+        }
+        setClaimReady(false);
+        try {
+            const claim = await SupabaseService.getMyGameClaim(trip.id);
+            setGameClaim(claim);
+        } catch {
+            setGameClaim(null);
+        } finally {
+            setClaimReady(true);
+        }
+    }, [user, enrolled, trip?.id]);
 
     const refresh = useCallback(async () => {
         if (!user || !enrolled) {
@@ -113,6 +147,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setTrip(null);
             setDays([]);
             setRole(null);
+            setGameClaim(null);
+            setClaimReady(true);
             setLoading(false);
             return;
         }
@@ -134,6 +170,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
             setDays([]);
             setRole(null);
+            setGameClaim(null);
+            setClaimReady(true);
         }
         setLoading(false);
     }, [user, enrolled]);
@@ -145,14 +183,29 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
     }, [refresh]);
 
+    useEffect(() => {
+        refreshClaim().catch(() => undefined);
+    }, [refreshClaim]);
+
     const joinWithCode = async (code: string) => {
         await SupabaseService.joinTrip(code.trim());
         await refresh();
     };
 
     const value = useMemo(
-        () => ({ trips, trip, days, role, loading, refresh, joinWithCode }),
-        [trips, trip, days, role, loading, refresh]
+        () => ({
+            trips,
+            trip,
+            days,
+            role,
+            loading,
+            gameClaim,
+            claimReady,
+            refresh,
+            refreshClaim,
+            joinWithCode,
+        }),
+        [trips, trip, days, role, loading, gameClaim, claimReady, refresh, refreshClaim]
     );
 
     return <TripContext.Provider value={value}>{children}</TripContext.Provider>;

@@ -12,6 +12,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activePath }) => {
     { path: '/discovery', icon: 'map', label: '行程' },
     { path: '/map-budget', icon: 'account_balance_wallet', label: '記帳' },
     { path: '/itinerary', icon: 'local_library', label: '攻略' },
+    { path: '/game', icon: 'theater_comedy', label: '任務' },
     { path: '/reminder', icon: 'notifications', label: '提醒' },
   ];
 
@@ -25,14 +26,14 @@ const BottomNav: React.FC<BottomNavProps> = ({ activePath }) => {
               key={item.path}
               type="button"
               onClick={() => navigate(item.path)}
-              className={`flex-1 h-[60px] rounded-full flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+              className={`flex-1 h-[56px] rounded-full flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
                 isActive ? 'text-zen-moss bg-zen-moss/10' : 'text-zen-text-light'
               }`}
             >
-              <span className={`material-symbols-outlined text-[24px] ${isActive ? 'material-symbols-filled text-cta' : ''}`}>
+              <span className={`material-symbols-outlined text-[22px] ${isActive ? 'material-symbols-filled text-cta' : ''}`}>
                 {item.icon}
               </span>
-              <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
+              <span className="text-[9px] font-medium tracking-wide">{item.label}</span>
             </button>
           );
         })}

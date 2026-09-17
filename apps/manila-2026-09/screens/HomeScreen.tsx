@@ -7,16 +7,15 @@ import { useSession, useTrip } from '../context/AppState';
 import { currencyMeta, weatherDescFromCode, weatherPlace } from '../lib/tripDisplay';
 import { BottomSheet } from '../components/ui/bottom-sheet';
 import { CinemaHero } from '../components/CinemaHero';
-
-function travelerPhotoSrc(url: string) {
-    if (/haru\./i.test(url)) return url;
-    return url.replace(/\.jpg$/i, '.png');
-}
+import { travelerPhotoSrc } from '../lib/travelerPhoto';
+import { scatterByUploader } from '../lib/scatterByUploader';
+import { DevilPhotoRail } from '../components/DevilPhotoRail';
 
 export const HomeScreen: React.FC = () => {
     const [travelers, setTravelers] = useState<Traveler[]>([]);
     const [travelerIndex, setTravelerIndex] = useState(0);
     const travelerScrollRef = useRef<HTMLDivElement>(null);
+    const [devilPhotos, setDevilPhotos] = useState<{ id: string; url: string }[]>([]);
     const [showSOSModal, setShowSOSModal] = useState(false);
     const [showTranslateModal, setShowTranslateModal] = useState(false);
 
@@ -27,9 +26,9 @@ export const HomeScreen: React.FC = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const { user } = useSession();
-    const { trip, days } = useTrip();
+    const { trip, days, gameClaim } = useTrip();
     const myUserId = user?.id || '';
-    const greetName = (user?.email || '旅人').split('@')[0];
+    const greetName = gameClaim?.display_name || (user?.email || '旅人').split('@')[0];
     const todayLabel = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
     useEffect(() => {
@@ -39,6 +38,21 @@ export const HomeScreen: React.FC = () => {
             .catch((err) => {
                 console.error(err);
                 setTravelers([]);
+            });
+        SupabaseService.getDevilPhotos(trip.id)
+            .then(async (rows) => {
+                const scattered = scatterByUploader(rows);
+                const signed = await Promise.all(
+                    scattered.map(async (p) => ({
+                        id: p.id,
+                        url: await SupabaseService.signedGamePhoto(p.storage_path),
+                    }))
+                );
+                setDevilPhotos(signed);
+            })
+            .catch((err) => {
+                console.error(err);
+                setDevilPhotos([]);
             });
     }, [trip?.id]);
 
@@ -582,11 +596,7 @@ export const HomeScreen: React.FC = () => {
                                             <img
                                                 src={travelerPhotoSrc(person.photo_url)}
                                                 alt=""
-                                                className={`w-full h-72 bg-zen-mist ${
-                                                    /haru\./i.test(person.photo_url)
-                                                        ? 'object-cover object-[center_22%]'
-                                                        : 'object-contain object-center'
-                                                }`}
+                                                className="w-full h-72 bg-zen-mist object-contain object-center"
                                             />
                                         ) : (
                                             <div className="w-full h-72 bg-zen-moss text-white flex items-center justify-center font-serif text-7xl">
@@ -630,6 +640,16 @@ export const HomeScreen: React.FC = () => {
                         </>
                     )}
                 </div>
+
+                {devilPhotos.length > 0 && (
+                    <div>
+                        <div className="flex items-center justify-between px-1 mb-2">
+                            <h3 className="text-sm font-medium">路上抓到了</h3>
+                            <p className="text-[10px] text-zen-text-light">誰拍的不公布</p>
+                        </div>
+                        <DevilPhotoRail photos={devilPhotos} />
+                    </div>
+                )}
 
                 <div className="glass-panel p-4 rounded-[1.25rem]">
                     <p className="text-[10px] tracking-widest text-cta uppercase">即時天氣</p>

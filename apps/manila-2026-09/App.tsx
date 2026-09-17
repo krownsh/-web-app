@@ -6,13 +6,26 @@ import MapBudgetScreen from './screens/MapBudgetScreen';
 import DiscoveryScreen from './screens/DiscoveryScreen';
 import { ReminderScreen } from './screens/ReminderScreen';
 import PreparationScreen from './screens/PreparationScreen';
+import GameScreen from './screens/GameScreen';
+import { ClaimTravelerScreen } from './screens/ClaimTravelerScreen';
 import BottomNav from './components/BottomNav';
-import { SessionProvider, TripProvider } from './context/AppState';
+import { SessionProvider, TripProvider, useTrip } from './context/AppState';
 import Gate from './components/Gate';
 import { Toaster } from './components/ui/sonner';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
+  const { trip, gameClaim, claimReady, refreshClaim } = useTrip();
+
+  if (!trip?.id || !claimReady) {
+    return (
+      <div className="flex h-full items-center justify-center text-sm text-zen-text-light">載入中…</div>
+    );
+  }
+
+  if (!gameClaim) {
+    return <ClaimTravelerScreen tripId={trip.id} onClaimed={() => refreshClaim()} />;
+  }
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col isolate">
@@ -24,6 +37,7 @@ const AppContent: React.FC = () => {
           <Route path="/discovery" element={<DiscoveryScreen />} />
           <Route path="/preparation" element={<PreparationScreen />} />
           <Route path="/reminder" element={<ReminderScreen />} />
+          <Route path="/game" element={<GameScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
