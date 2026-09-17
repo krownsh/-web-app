@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, SupabaseService } from '../services/SupabaseService';
 import { Trip, TripDay } from '../types';
@@ -111,6 +111,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, enrolled } = useSession();
+    const userId = user?.id;
     const [trips, setTrips] = useState<Trip[]>([]);
     const [trip, setTrip] = useState<Trip | null>(null);
     const [days, setDays] = useState<TripDay[]>([]);
@@ -119,8 +120,10 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [gameClaim, setGameClaim] = useState<GameClaim | null>(null);
     const [claimReady, setClaimReady] = useState(false);
 
+    const bootstrapped = useRef(false);
+
     const refreshClaim = useCallback(async () => {
-        if (!user || !enrolled) {
+        if (!userId || !enrolled) {
             setGameClaim(null);
             setClaimReady(true);
             return;
@@ -130,7 +133,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setClaimReady(false);
             return;
         }
-        setClaimReady(false);
         try {
             const claim = await SupabaseService.getMyGameClaim(trip.id);
             setGameClaim(claim);
@@ -139,10 +141,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
             setClaimReady(true);
         }
-    }, [user, enrolled, trip?.id]);
+    }, [userId, enrolled, trip?.id]);
 
     const refresh = useCallback(async () => {
-        if (!user || !enrolled) {
+        if (!userId || !enrolled) {
+            bootstrapped.current = false;
             setTrips([]);
             setTrip(null);
             setDays([]);
@@ -152,29 +155,33 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLoading(false);
             return;
         }
-        setLoading(true);
-        const list = await SupabaseService.getMyTrips();
-        setTrips(list);
-        const active = list[0] || null;
-        setTrip(active);
-        if (active) {
-            const tripDays = await SupabaseService.getTripDays(active.id);
-            setDays(tripDays);
-            const { data: member } = await supabase
-                .from('zentravel_trip_members')
-                .select('role')
-                .eq('trip_id', active.id)
-                .eq('user_id', user.id)
-                .maybeSingle();
-            setRole((member?.role as 'owner' | 'member') || 'member');
-        } else {
-            setDays([]);
-            setRole(null);
-            setGameClaim(null);
-            setClaimReady(true);
+        if (!bootstrapped.current) setLoading(true);
+        try {
+            const list = await SupabaseService.getMyTrips();
+            setTrips(list);
+            const active = list[0] || null;
+            setTrip(active);
+            if (active) {
+                const tripDays = await SupabaseService.getTripDays(active.id);
+                setDays(tripDays);
+                const { data: member } = await supabase
+                    .from('zentravel_trip_members')
+                    .select('role')
+                    .eq('trip_id', active.id)
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                setRole((member?.role as 'owner' | 'member') || 'member');
+            } else {
+                setDays([]);
+                setRole(null);
+                setGameClaim(null);
+                setClaimReady(true);
+            }
+            bootstrapped.current = true;
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-    }, [user, enrolled]);
+    }, [userId, enrolled]);
 
     useEffect(() => {
         refresh().catch((err) => {

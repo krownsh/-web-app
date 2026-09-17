@@ -41,7 +41,13 @@ export const GameScreen: React.FC = () => {
     const [board, setBoard] = useState<Awaited<ReturnType<typeof SupabaseService.getAllGameDraws>>>([]);
     const [msg, setMsg] = useState('');
     const [busy, setBusy] = useState(false);
-    const [mode, setMode] = useState<'angel' | 'devil'>('angel');
+    const [mode, setMode] = useState<'angel' | 'devil'>(() => {
+        try {
+            return sessionStorage.getItem('zentravel-game-tab') === 'devil' ? 'devil' : 'angel';
+        } catch {
+            return 'angel';
+        }
+    });
 
     const pool = travelers.filter((t) => t.display_name !== 'Haru');
 
@@ -73,9 +79,9 @@ export const GameScreen: React.FC = () => {
         }
     };
 
-    const loadDevilPhotos = async () => {
+    const loadDevilPhotos = async (devilId: string) => {
         if (!tripId) return;
-        const photoRows = await SupabaseService.getDevilPhotos(tripId);
+        const photoRows = await SupabaseService.getDevilPhotos(tripId, devilId);
         const signed = await Promise.all(
             photoRows.map(async (p) => ({
                 id: p.id,
@@ -87,6 +93,14 @@ export const GameScreen: React.FC = () => {
     };
 
     useEffect(() => {
+        try {
+            sessionStorage.setItem('zentravel-game-tab', mode);
+        } catch {
+            /* ignore */
+        }
+    }, [mode]);
+
+    useEffect(() => {
         loadClaimGate().catch((err) => setMsg(err.message));
     }, [tripId, userId]);
 
@@ -96,9 +110,9 @@ export const GameScreen: React.FC = () => {
     }, [lotteryPlayed, tripId, userId]);
 
     useEffect(() => {
-        if (!lotteryPlayed || mode !== 'devil') return;
-        loadDevilPhotos().catch((err) => setMsg(err.message));
-    }, [lotteryPlayed, mode, tripId]);
+        if (!lotteryPlayed || mode !== 'devil' || !draw?.devil_id) return;
+        loadDevilPhotos(draw.devil_id).catch((err) => setMsg(err.message));
+    }, [lotteryPlayed, mode, tripId, draw?.devil_id]);
 
     const finishLottery = async () => {
         setBusy(true);
@@ -132,6 +146,7 @@ export const GameScreen: React.FC = () => {
         const files = Array.from(e.target.files || []);
         e.target.value = '';
         if (!files.length || !userId) return;
+        setMode('devil');
         setBusy(true);
         setMsg('');
         try {
@@ -139,7 +154,7 @@ export const GameScreen: React.FC = () => {
                 const blob = await compressImageFile(file);
                 await SupabaseService.uploadDevilPhoto(tripId, userId, blob);
             }
-            await loadDevilPhotos();
+            if (draw?.devil_id) await loadDevilPhotos(draw.devil_id);
         } catch (err: any) {
             setMsg(err.message || '上傳失敗');
         } finally {
@@ -217,7 +232,7 @@ export const GameScreen: React.FC = () => {
                 {draw && mode === 'devil' && (
                     <p className="mt-3 text-sm">
                         <span className="font-bold">惡魔任務：</span>
-                        你抽到 {draw.devil_name}。在不被發現的情況下偷拍醜照並上傳；照片會給全團看。
+                        你抽到 {draw.devil_name}。在不被發現的情況下偷拍醜照並上傳；這面牆只放 {draw.devil_name} 的照片。
                     </p>
                 )}
             </section>
@@ -317,7 +332,7 @@ export const GameScreen: React.FC = () => {
                 <div className="mt-3">
                     <DevilPhotoRail
                         photos={photos.map((p) => ({ id: p.id, url: p.url, caption: nameOf(p.target_id) }))}
-                        emptyText="還沒有醜照"
+                        emptyText={draw ? `還沒有 ${draw.devil_name} 的醜照` : '還沒有醜照'}
                     />
                 </div>
             </section>

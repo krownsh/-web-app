@@ -359,28 +359,26 @@ const DiscoveryScreen: React.FC = () => {
                     <div className="px-8 pt-2 pb-6 shrink-0 text-center text-zen-text-light text-sm">此日行程暫無地圖資訊</div>
                 )}
 
-                {/* Weather & Reminder Info Card - Sticky */}
-                {fullItinerary[activeDay] && (
-                    <div className="px-6 pb-2 shrink-0">
-                        <div className="bg-zen-mist/10 rounded-xl p-3 border border-zen-rock/20 relative z-10 flex flex-col gap-1">
-                            <div className="flex flex-col gap-2 text-zen-text-light">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[16px] text-amber-500">wb_sunny</span>
-                                    <span className="text-xs font-medium tracking-wide">{fullItinerary[activeDay].weather}</span>
-                                </div>
-                                {fullItinerary[activeDay].reminder && (
-                                    <div className="flex items-start gap-2">
-                                        <span className="material-symbols-outlined text-[16px] shrink-0 mt-0.5 text-zen-moss">campaign</span>
-                                        <p className="text-xs font-medium tracking-wide leading-relaxed text-zen-text opacity-90">{fullItinerary[activeDay].reminder}</p>
+                {/* Scrollable Timeline List — weather + reminder scroll away with items */}
+                <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar px-6 pb-32">
+                    {fullItinerary[activeDay] && (
+                        <div className="pb-4">
+                            <div className="bg-zen-mist/10 rounded-xl p-3 border border-zen-rock/20 relative z-10 flex flex-col gap-1">
+                                <div className="flex flex-col gap-2 text-zen-text-light">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[16px] text-amber-500">wb_sunny</span>
+                                        <span className="text-xs font-medium tracking-wide">{fullItinerary[activeDay].weather}</span>
                                     </div>
-                                )}
+                                    {fullItinerary[activeDay].reminder && (
+                                        <div className="flex items-start gap-2">
+                                            <span className="material-symbols-outlined text-[16px] shrink-0 mt-0.5 text-zen-moss">campaign</span>
+                                            <p className="text-xs font-medium tracking-wide leading-relaxed text-zen-text opacity-90">{fullItinerary[activeDay].reminder}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Scrollable Timeline List */}
-                <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-32">
+                    )}
 
                     <div className="relative">
                         {/* Continuous Timeline Line */}

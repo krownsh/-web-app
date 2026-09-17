@@ -19,9 +19,9 @@ const MOSAIC_FACES = [
     '/travelers/haru.png',
     '/travelers/farong.png',
     '/travelers/zichen.png',
+    '/travelers/junxuan.png',
     '/travelers/weishao.png',
     '/travelers/yuxin.png',
-    '/travelers/junxuan.png',
     '/travelers/chenghong.png',
 ];
 

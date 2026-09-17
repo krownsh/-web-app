@@ -12,7 +12,7 @@ export const GameDrawReveal: React.FC<Props> = ({ role, name, photo }) => {
 
     return (
         <div className="flex flex-col items-center pt-2">
-            <p className={`text-[10px] tracking-[0.25em] uppercase ${role === 'angel' ? 'text-cta' : 'text-zen-text'}`}>
+            <p className={`text-[10px] tracking-[0.25em] uppercase text-cta`}>
                 {label}
             </p>
             <div className="relative mt-3 size-56 flex items-center justify-center">

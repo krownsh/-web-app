@@ -644,8 +644,7 @@ export const HomeScreen: React.FC = () => {
                 {devilPhotos.length > 0 && (
                     <div>
                         <div className="flex items-center justify-between px-1 mb-2">
-                            <h3 className="text-sm font-medium">路上抓到了</h3>
-                            <p className="text-[10px] text-zen-text-light">誰拍的不公布</p>
+                            <h3 className="text-sm font-medium">醜照蒐集站</h3>
                         </div>
                         <DevilPhotoRail photos={devilPhotos} />
                     </div>
@@ -687,13 +686,21 @@ export const HomeScreen: React.FC = () => {
                     {weatherData.daily.length > 0 ? (
                         <div className="flex flex-col gap-2">
                             {weatherData.daily.map((day) => (
-                                <div key={day.date} className="flex items-center gap-3 rounded-2xl bg-zen-mist px-3 py-2.5">
-                                    <span className="material-symbols-outlined text-zen-moss">{day.icon}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{day.label}</p>
-                                        <p className="text-[11px] text-zen-text-light">{day.desc} · 降雨 {day.rain}%</p>
+                                <div key={day.date} className="rounded-2xl bg-zen-mist px-3 py-2.5">
+                                    <div className="flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-zen-moss mt-0.5 shrink-0">{day.icon}</span>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <p className="text-sm font-medium leading-snug break-words">{day.label}</p>
+                                                <p className="font-serif text-lg leading-none tabular-nums shrink-0">
+                                                    {day.max}° <span className="text-zen-text-light text-sm">/ {day.min}°</span>
+                                                </p>
+                                            </div>
+                                            <p className="text-[11px] text-zen-text-light leading-snug break-words mt-1">
+                                                {day.desc} · 降雨 {day.rain}%
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="font-serif text-lg tabular-nums shrink-0">{day.max}° <span className="text-zen-text-light text-sm">/ {day.min}°</span></p>
                                 </div>
                             ))}
                         </div>

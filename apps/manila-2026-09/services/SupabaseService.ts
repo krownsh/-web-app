@@ -2,8 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 import { Budget, ChecklistStatus, ExpenseItem, ItineraryItem, MustBuyItem, Traveler, Trip, TripDay } from '../types';
 import { imageForItem } from '../lib/spotImages';
 
-const SUPABASE_URL = (import.meta as any).env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = (import.meta as any).env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('缺少 VITE_SUPABASE_URL 或 VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY，無法連線');
+}
 
 const JOIN_CODE = 'MNL927';
 const TRIP_SLUG = 'manila-2026-09';
@@ -358,12 +362,14 @@ export const SupabaseService = {
         if (error) throw error;
     },
 
-    async getDevilPhotos(tripId: string) {
-        const { data, error } = await supabase
+    async getDevilPhotos(tripId: string, targetId?: string) {
+        let query = supabase
             .from('zentravel_game_devil_photos')
             .select('id, target_id, uploader_id, storage_path, created_at')
             .eq('trip_id', tripId)
             .order('created_at', { ascending: false });
+        if (targetId) query = query.eq('target_id', targetId);
+        const { data, error } = await query;
         if (error) throw error;
         return (data || []) as { id: string; target_id: string; uploader_id: string; storage_path: string; created_at: string }[];
     },
