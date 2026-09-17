@@ -33,7 +33,3 @@ public/sw.js
 public/workbox-*.js
 sw.js
 workbox-*.js
-
-# Local hero video (too large for git)
-public/videos/*.mp4
-!public/videos/lottery.mp4
