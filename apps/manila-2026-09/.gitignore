@@ -36,3 +36,4 @@ workbox-*.js
 
 # Local hero video (too large for git)
 public/videos/*.mp4
+!public/videos/lottery.mp4

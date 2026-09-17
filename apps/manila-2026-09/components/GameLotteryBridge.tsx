@@ -15,7 +15,7 @@ type Props = {
     onEnterGame: () => void;
 };
 
-const LOTTERY_VIDEO = '/videos/hero-pre.mp4';
+const LOTTERY_VIDEO = '/videos/lottery.mp4';
 
 function ResultCard({
     label,
