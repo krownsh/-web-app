@@ -105,9 +105,10 @@ export const GameScreen: React.FC = () => {
         setMsg('');
         try {
             await SupabaseService.finishGameLottery(tripId);
-            setLotteryPlayed(true);
+            return await SupabaseService.getMyGameDraw(tripId);
         } catch (err: any) {
             setMsg(err.message || '抽籤失敗');
+            throw err;
         } finally {
             setBusy(false);
         }
@@ -167,7 +168,12 @@ export const GameScreen: React.FC = () => {
     if (!lotteryPlayed) {
         return (
             <div className="relative h-full">
-                <GameLotteryBridge busy={busy} error={msg} onFinished={() => void finishLottery()} />
+                <GameLotteryBridge
+                    busy={busy}
+                    error={msg}
+                    onFinished={finishLottery}
+                    onEnterGame={() => setLotteryPlayed(true)}
+                />
             </div>
         );
     }

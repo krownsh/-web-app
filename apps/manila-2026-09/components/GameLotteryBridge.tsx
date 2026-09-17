@@ -1,52 +1,164 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { travelerPhotoSrc } from '../lib/travelerPhoto';
+
+export type LotteryDraw = {
+    angel_name: string;
+    devil_name: string;
+    angel_photo: string | null;
+    devil_photo: string | null;
+};
 
 type Props = {
     busy?: boolean;
     error?: string;
-    onFinished: () => void;
+    onFinished: () => Promise<LotteryDraw | null>;
+    onEnterGame: () => void;
 };
 
-export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const [playing, setPlaying] = useState(false);
+const LOTTERY_VIDEO = '/videos/hero-pre.mp4';
 
-    useEffect(() => {
-        if (!playing) return;
-        const el = videoRef.current;
-        if (!el) return;
-        el.play().catch(() => setPlaying(false));
-    }, [playing]);
-
+function ResultCard({
+    label,
+    name,
+    photo,
+    accent,
+}: {
+    label: string;
+    name: string;
+    photo: string | null;
+    accent: string;
+}) {
     return (
-        <div className="absolute inset-0 z-[10050] bg-zen-dark text-white flex flex-col items-center justify-center px-6">
-            {playing && (
-                <video
-                    ref={videoRef}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    src="/videos/hero-pre.mp4"
-                    playsInline
-                    preload="auto"
-                    onEnded={onFinished}
-                />
-            )}
-            <div className="relative z-10 text-center max-w-xs">
-                {!playing && (
-                    <>
-                        <p className="text-[10px] tracking-[0.35em] uppercase text-white/70">任務</p>
-                        <h1 className="font-serif text-4xl mt-2">抽籤</h1>
-                        <p className="text-sm text-white/80 mt-3">按下後會播放抽籤影片，播完才能進入天使與惡魔。</p>
-                        <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => setPlaying(true)}
-                            className="mt-8 w-full py-4 rounded-full bg-cta text-white font-bold text-lg"
-                        >
-                            {busy ? '抽籤中…' : '開始抽籤'}
-                        </button>
-                        {error && <p className="mt-3 text-sm text-cta">{error}</p>}
-                    </>
+        <div className="flex w-[42%] flex-col items-center">
+            <p className={`text-[10px] tracking-[0.28em] uppercase ${accent}`}>{label}</p>
+            <div className="relative mt-2 flex size-28 items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-zen-moss/80" />
+                {photo ? (
+                    <img src={travelerPhotoSrc(photo)} alt="" className="relative z-10 h-24 w-auto object-contain" />
+                ) : (
+                    <p className="relative z-10 font-serif text-4xl text-white">{name.slice(0, 1)}</p>
                 )}
             </div>
+            <p className="mt-1 font-serif text-xl text-white">{name}</p>
+        </div>
+    );
+}
+
+export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, onEnterGame }) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const curtainRef = useRef<HTMLDivElement>(null);
+    const [curtainUp, setCurtainUp] = useState(false);
+    const [result, setResult] = useState<LotteryDraw | null>(null);
+    const [loadError, setLoadError] = useState(error || '');
+
+    const startedRef = useRef(false);
+
+    useEffect(() => {
+        setLoadError(error || '');
+    }, [error]);
+
+    useEffect(() => {
+        const el = videoRef.current;
+        if (!el) return;
+        el.loop = false;
+        el.muted = true;
+        el.volume = 0;
+        el.pause();
+        el.currentTime = 0;
+    }, []);
+
+    useEffect(() => {
+        if (!curtainUp) return;
+        const curtain = curtainRef.current;
+        const video = videoRef.current;
+        if (!curtain || !video) return;
+
+        const playAfterLift = () => {
+            if (startedRef.current) return;
+            startedRef.current = true;
+            video.loop = false;
+            video.muted = true;
+            video.volume = 0;
+            video.play().catch(() => undefined);
+        };
+
+        curtain.addEventListener('transitionend', playAfterLift, { once: true });
+        const fallback = window.setTimeout(playAfterLift, 780);
+        return () => {
+            curtain.removeEventListener('transitionend', playAfterLift);
+            window.clearTimeout(fallback);
+        };
+    }, [curtainUp]);
+
+    const onVideoEnded = async () => {
+        try {
+            const draw = await onFinished();
+            setResult(draw);
+        } catch (err: any) {
+            setLoadError(err.message || '抽籤失敗');
+        }
+    };
+
+    return (
+        <div className="absolute inset-0 z-[10050] overflow-hidden bg-zen-dark text-white">
+            <video
+                ref={videoRef}
+                className="absolute inset-0 h-full w-full object-cover"
+                src={LOTTERY_VIDEO}
+                loop={false}
+                muted
+                playsInline
+                preload="auto"
+                onLoadedMetadata={(e) => {
+                    e.currentTarget.loop = false;
+                    e.currentTarget.muted = true;
+                    e.currentTarget.volume = 0;
+                    if (!startedRef.current) {
+                        e.currentTarget.pause();
+                        e.currentTarget.currentTime = 0;
+                    }
+                }}
+                onEnded={(e) => {
+                    e.currentTarget.pause();
+                    void onVideoEnded();
+                }}
+            />
+
+            <div
+                ref={curtainRef}
+                className={`absolute inset-0 z-10 flex flex-col items-center justify-center bg-zen-dark px-6 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    curtainUp ? '-translate-y-full' : 'translate-y-0'
+                }`}
+            >
+                <p className="text-[10px] tracking-[0.35em] uppercase text-white/70">任務</p>
+                <h1 className="font-serif text-4xl mt-2">抽籤</h1>
+                <button
+                    type="button"
+                    disabled={busy || curtainUp}
+                    onClick={() => setCurtainUp(true)}
+                    className="mt-8 w-full max-w-xs py-4 rounded-full bg-cta text-white font-bold text-lg"
+                >
+                    {busy ? '抽籤中…' : '開始抽籤'}
+                </button>
+                {loadError && !result && <p className="mt-3 text-sm text-cta">{loadError}</p>}
+            </div>
+
+            {result && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zen-dark/55 px-5 animate-fade-in">
+                    <p className="text-[10px] tracking-[0.35em] uppercase text-white/80">你抽中了</p>
+                    <div className="mt-6 flex w-full justify-center gap-3">
+                        <ResultCard label="你的天使" name={result.angel_name} photo={result.angel_photo} accent="text-cta" />
+                        <ResultCard label="你的惡魔" name={result.devil_name} photo={result.devil_photo} accent="text-white/80" />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onEnterGame}
+                        className="mt-10 w-full max-w-xs py-4 rounded-full bg-cta text-white font-bold text-lg"
+                    >
+                        進入任務
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

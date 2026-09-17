@@ -21,6 +21,8 @@ export const CinemaHeroPortrait: React.FC<CinemaHeroPortraitProps> = ({ tripTitl
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          video.muted = true;
+          video.volume = 0;
           video.play().catch(() => undefined);
         } else {
           video.pause();
@@ -92,7 +94,13 @@ export const CinemaHeroPortrait: React.FC<CinemaHeroPortraitProps> = ({ tripTitl
           autoPlay
           playsInline
           preload="auto"
+          onLoadedMetadata={(e) => {
+            e.currentTarget.muted = true;
+            e.currentTarget.volume = 0;
+          }}
           onCanPlay={(e) => {
+            e.currentTarget.muted = true;
+            e.currentTarget.volume = 0;
             e.currentTarget.play().catch(() => undefined);
           }}
           aria-hidden="true"

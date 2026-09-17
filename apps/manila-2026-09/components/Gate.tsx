@@ -13,9 +13,58 @@ function authMessage(message: string) {
     return message;
 }
 
+const MOSAIC_FACES = [
+    '/travelers/meihui.png',
+    '/travelers/zhihao.png',
+    '/travelers/haru.png',
+    '/travelers/farong.png',
+    '/travelers/zichen.png',
+    '/travelers/weishao.png',
+    '/travelers/yuxin.png',
+    '/travelers/junxuan.png',
+    '/travelers/chenghong.png',
+];
+
+const WALLPAPER_COLS = 5;
+const WALLPAPER_ROWS = 10;
+
+function wallpaperStyle(row: number, col: number) {
+    const brick = col % 2 === 0 ? 0 : 28;
+    const y = brick + ((row * 13 + col * 17) % 36) - 14;
+    const x = ((row * 11 + col * 19) % 22) - 10;
+    const rot = ((row * 7 + col * 23) % 15) - 7;
+    return {
+        transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`,
+    };
+}
+
+function LoginStage({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="relative flex h-full min-h-0 items-center justify-center overflow-hidden bg-zen-dark px-6 page-enter">
+            <div className="absolute -inset-16 grid grid-cols-5 gap-x-7 gap-y-8" aria-hidden="true">
+                {Array.from({ length: WALLPAPER_ROWS * WALLPAPER_COLS }, (_, i) => {
+                    const row = Math.floor(i / WALLPAPER_COLS);
+                    const col = i % WALLPAPER_COLS;
+                    return (
+                        <img
+                            key={i}
+                            src={MOSAIC_FACES[i % MOSAIC_FACES.length]}
+                            alt=""
+                            style={wallpaperStyle(row, col)}
+                            className="size-[4.5rem] justify-self-center object-contain"
+                        />
+                    );
+                })}
+            </div>
+            <div className="absolute inset-0 bg-zen-dark/40" aria-hidden="true" />
+            <div className="relative z-10 w-full max-w-[20rem]">{children}</div>
+        </div>
+    );
+}
+
 export default function Gate({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading, enrolled, enrollThisApp } = useSession();
-    const { trip, trips, loading: tripLoading, joinWithCode } = useTrip();
+    const { trip, loading: tripLoading, joinWithCode } = useTrip();
     const [mode, setMode] = useState<'login' | 'register'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -90,75 +139,107 @@ export default function Gate({ children }: { children: React.ReactNode }) {
 
     if (authLoading || (user && enrolled && tripLoading)) {
         return (
-            <div className="h-full flex items-center justify-center bg-zen-bg text-zen-text page-enter">
+            <div className="h-full flex items-center justify-center bg-zen-dark text-zen-mist page-enter">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="size-8 border-2 border-zen-moss/20 border-t-zen-moss rounded-full animate-spin" />
+                    <div className="size-8 border-2 border-white/20 border-t-cta rounded-full animate-spin" />
                     <p className="text-sm">載入中…</p>
                 </div>
             </div>
         );
     }
 
-    const fieldClass = "w-full rounded-xl border-2 border-zen-moss/70 bg-white px-4 py-3.5 text-sm min-h-[52px] outline-none focus:ring-2 focus:ring-cta/60 focus:border-cta";
-    const ctaClass = "btn-cta w-full rounded-xl py-3.5 text-base font-medium min-h-[52px] cursor-pointer disabled:opacity-70";
+    const fieldClass =
+        'w-full rounded-xl border-2 border-zen-moss/70 bg-white px-4 py-3 text-base min-h-[52px] outline-none focus:ring-2 focus:ring-cta/60 focus:border-cta';
+    const ctaClass = 'btn-cta w-full rounded-xl py-3.5 text-lg font-medium min-h-[52px] cursor-pointer disabled:opacity-70';
 
     if (!user || !enrolled) {
         return (
-            <div className="h-full overflow-y-auto bg-zen-bg px-6 pt-10 pb-10 page-enter">
-                <h1 className="font-serif text-[2rem] text-center text-zen-text mb-5">馬尼拉三日</h1>
-                <img src="/spots/intramuros.png" alt="" className="w-full h-44 object-cover rounded-[1.25rem] mb-7 shadow-mist" />
-                <h2 className="text-2xl font-bold text-zen-text leading-snug">
-                    {mode === 'login' ? '用信箱登入本行程' : '註冊加入本行程'}
-                </h2>
-                <p className="mt-2 mb-6 text-sm text-zen-text-light">
-                    {mode === 'login'
-                        ? '登入後再輸入團碼'
-                        : '註冊只會加入本行程 App，不會沿用其他系統的名單。'}
-                </p>
-                <form onSubmit={submitAuth} className={`flex flex-col gap-3 ${error ? 'animate-shake' : ''}`}>
-                    <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="信箱" required className={fieldClass} />
-                    <input type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密碼" required className={fieldClass} />
-                    {error && <p className="text-sm text-red-500 animate-fade-in">{error}</p>}
-                    {hint && <p className="text-sm text-zen-moss animate-fade-in">{hint}</p>}
-                    <button disabled={busy} className={ctaClass}>
+            <LoginStage>
+                <form
+                    onSubmit={submitAuth}
+                    className={`w-full rounded-2xl border border-cta/40 bg-zen-bg px-5 py-6 shadow-float ${error ? 'animate-shake' : ''}`}
+                >
+                    <h1 className="font-serif text-2xl text-center text-zen-moss">馬尼拉三日</h1>
+                    <h2 className="mt-1 text-center text-base font-bold text-zen-text">
+                        {mode === 'login' ? '用信箱登入' : '註冊加入'}
+                    </h2>
+                    <p className="mt-1 mb-3 text-center text-[11px] leading-snug text-zen-text-light">
+                        {mode === 'login' ? '登入後再輸入團碼' : '只加入本行程 App'}
+                    </p>
+                    <label className="sr-only" htmlFor="gate-email">信箱</label>
+                    <input
+                        id="gate-email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="信箱"
+                        required
+                        className={fieldClass}
+                    />
+                    <label className="sr-only" htmlFor="gate-password">密碼</label>
+                    <input
+                        id="gate-password"
+                        type="password"
+                        autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="密碼"
+                        required
+                        className={`${fieldClass} mt-2`}
+                    />
+                    {error && <p className="mt-2 text-xs text-red-500 animate-fade-in">{error}</p>}
+                    {hint && <p className="mt-2 text-xs text-zen-moss animate-fade-in">{hint}</p>}
+                    <button disabled={busy} className={`${ctaClass} mt-3`}>
                         {busy ? '請稍候…' : mode === 'login' ? '登入' : '註冊'}
                     </button>
+                    <button
+                        type="button"
+                        className="w-full mt-2 text-[11px] text-zen-text-light min-h-[36px] cursor-pointer"
+                        onClick={() => {
+                            setMode(mode === 'login' ? 'register' : 'login');
+                            setError('');
+                            setHint('');
+                        }}
+                    >
+                        {mode === 'login' ? '還沒帳號？註冊' : '已有帳號？登入'}
+                    </button>
                 </form>
-                <button
-                    type="button"
-                    className="w-full mt-5 text-sm text-zen-text-light min-h-[44px] cursor-pointer"
-                    onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setHint(''); }}
-                >
-                    {mode === 'login' ? '還沒有本 App 帳號？註冊' : '已在本 App 註冊？登入'}
-                </button>
-            </div>
+            </LoginStage>
         );
     }
 
     if (!trip) {
         return (
-            <div className="h-full overflow-y-auto bg-zen-bg page-enter">
-                <img src="/spots/intramuros.png" alt="" className="w-full h-48 object-cover" />
-                <div className="px-6 pt-8 pb-10 flex flex-col items-center">
-                    <h1 className="font-serif text-3xl text-zen-text">加入行程</h1>
-                    <p className="mt-2 mb-8 text-sm text-zen-text-light">請輸入團碼</p>
-                    <form onSubmit={join} className={`w-full flex flex-col items-center gap-5 ${error ? 'animate-shake' : ''}`}>
-                        <input
-                            value={code}
-                            onChange={(e) => setCode(e.target.value.toUpperCase())}
-                            placeholder="MNL927"
-                            className="w-full rounded-xl border-2 border-zen-moss/70 bg-white px-3 py-4 text-center font-serif text-2xl tracking-[0.4em] min-h-[56px] outline-none focus:ring-2 focus:ring-cta/60"
-                        />
-                        {error && <p className="text-sm text-red-500 animate-fade-in">{error}</p>}
-                        <button disabled={busy || !code} className={ctaClass}>
-                            {busy ? '請稍候…' : '加入'}
-                        </button>
-                    </form>
-                    <button className="mt-6 text-sm text-zen-moss underline min-h-[44px] cursor-pointer" onClick={() => supabase.auth.signOut()}>
+            <LoginStage>
+                <form
+                    onSubmit={join}
+                    className={`w-full rounded-2xl border border-cta/40 bg-zen-bg px-5 py-6 shadow-float ${error ? 'animate-shake' : ''}`}
+                >
+                    <h1 className="font-serif text-2xl text-center text-zen-moss">加入行程</h1>
+                    <p className="mt-1 mb-3 text-center text-[11px] text-zen-text-light">請輸入團碼</p>
+                    <label className="sr-only" htmlFor="gate-code">團碼</label>
+                    <input
+                        id="gate-code"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.toUpperCase())}
+                        placeholder="MNL927"
+                        autoComplete="off"
+                        className="w-full rounded-xl border-2 border-zen-moss/70 bg-white px-2 py-3 text-center font-serif text-xl tracking-[0.28em] min-h-[48px] outline-none focus:ring-2 focus:ring-cta/60"
+                    />
+                    {error && <p className="mt-2 text-xs text-red-500 animate-fade-in">{error}</p>}
+                    <button disabled={busy || !code} className={`${ctaClass} mt-3`}>
+                        {busy ? '請稍候…' : '加入'}
+                    </button>
+                    <button
+                        type="button"
+                        className="mt-2 w-full text-[11px] text-zen-moss underline min-h-[36px] cursor-pointer"
+                        onClick={() => supabase.auth.signOut()}
+                    >
                         登出
                     </button>
-                </div>
-            </div>
+                </form>
+            </LoginStage>
         );
     }
 

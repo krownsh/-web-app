@@ -21,6 +21,8 @@ export const CinemaHeroLandscape: React.FC<CinemaHeroLandscapeProps> = ({ tripTi
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          video.muted = true;
+          video.volume = 0;
           video.play().catch(() => undefined);
         } else {
           video.pause();
@@ -68,7 +70,13 @@ export const CinemaHeroLandscape: React.FC<CinemaHeroLandscapeProps> = ({ tripTi
         autoPlay
         playsInline
         preload="auto"
+        onLoadedMetadata={(e) => {
+          e.currentTarget.muted = true;
+          e.currentTarget.volume = 0;
+        }}
         onCanPlay={(e) => {
+          e.currentTarget.muted = true;
+          e.currentTarget.volume = 0;
           e.currentTarget.play().catch(() => undefined);
         }}
         aria-hidden="true"

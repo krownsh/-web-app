@@ -53,7 +53,7 @@ const App: React.FC = () => {
         <TripProvider>
           <Toaster />
           <div className="min-h-dvh bg-[#e8dcc8] flex justify-center">
-            <div className="relative h-[100dvh] w-full max-w-md overflow-hidden bg-zen-bg flex flex-col font-display text-zen-text shadow-2xl shadow-[#1c3d4a]/15">
+            <div id="app-phone" className="relative h-[100dvh] w-full max-w-md overflow-hidden bg-zen-bg flex flex-col font-display text-zen-text shadow-2xl shadow-[#1c3d4a]/15">
               <Gate>
                 <AppContent />
               </Gate>
