@@ -4,7 +4,7 @@ import { MotionLink } from '../components/MotionLink';
 import { SupabaseService } from '../services/SupabaseService';
 import { MustBuyItem, ChecklistStatus, ItineraryItem, Traveler } from '../types';
 import { useSession, useTrip } from '../context/AppState';
-import { currencyMeta, weatherDescFromCode, weatherPlace } from '../lib/tripDisplay';
+import { currencyMeta, weatherDescFromCode, weatherPlace, resolveHomeTripDay } from '../lib/tripDisplay';
 import { BottomSheet } from '../components/ui/bottom-sheet';
 import { CinemaHero } from '../components/CinemaHero';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
@@ -174,36 +174,14 @@ export const HomeScreen: React.FC = () => {
         setForeignAmount((Number(val) / liveRate).toFixed(0));
     };
 
-    const tripStartDate = new Date(`${trip?.start_date || '2025-12-27'}T00:00:00`);
-    const [tripState, setTripState] = useState<{ type: 'countdown' | 'day' | 'ended'; value: number }>({ type: 'day', value: 1 });
-    const [currentDayKey, setCurrentDayKey] = useState('D1');
-
-    useEffect(() => {
-        const calculateTripState = () => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const diffTime = tripStartDate.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            const endDate = trip?.end_date ? new Date(`${trip.end_date}T00:00:00`) : null;
-            const afterTrip = endDate ? today.getTime() > endDate.getTime() : false;
-
-            if (diffDays > 0) {
-                setTripState({ type: 'countdown', value: diffDays });
-                setCurrentDayKey('D1');
-            } else if (afterTrip) {
-                const last = Math.max(days.length, 1);
-                setTripState({ type: 'ended', value: last });
-                setCurrentDayKey(`D${last}`);
-            } else {
-                const dayNum = Math.abs(diffDays) + 1;
-                const cappedDayNum = Math.min(Math.max(dayNum, 1), Math.max(days.length, 1));
-                setTripState({ type: 'day', value: cappedDayNum });
-                setCurrentDayKey(`D${cappedDayNum}`);
-            }
-        };
-        calculateTripState();
-    }, [trip?.start_date, trip?.end_date, days.length]);
+    const homeDay = resolveHomeTripDay({
+        timezone: trip?.timezone,
+        startDate: trip?.start_date,
+        endDate: trip?.end_date,
+        days,
+    });
+    const tripState = { type: homeDay.type, value: homeDay.value };
+    const currentDayKey = homeDay.dayKey;
 
     // Initialize Wheel Data from Google Sheets or Local fallback
     const [wheelData, setWheelData] = useState<any[]>([]);
@@ -243,15 +221,23 @@ export const HomeScreen: React.FC = () => {
         if (trip?.id) loadItinerary();
     }, [currentDayKey, trip?.id]);
 
-    const [activeIndex, setActiveIndex] = useState(() => {
-        const saved = localStorage.getItem('zen_active_itinerary_index');
-        return saved ? parseInt(saved, 10) : 0;
-    });
+    const [activeIndex, setActiveIndex] = useState(0);
 
-    // Persist active index whenever it changes
     useEffect(() => {
-        localStorage.setItem('zen_active_itinerary_index', activeIndex.toString());
-    }, [activeIndex]);
+        const saved = localStorage.getItem(`zen_active_itinerary_index_${currentDayKey}`);
+        const n = saved ? parseInt(saved, 10) : 0;
+        setActiveIndex(Number.isFinite(n) && n >= 0 ? n : 0);
+    }, [currentDayKey]);
+
+    useEffect(() => {
+        localStorage.setItem(`zen_active_itinerary_index_${currentDayKey}`, String(activeIndex));
+    }, [activeIndex, currentDayKey]);
+
+    useEffect(() => {
+        if (wheelData.length > 0 && activeIndex >= wheelData.length) {
+            setActiveIndex(0);
+        }
+    }, [wheelData.length, activeIndex]);
 
     const activeItem = wheelData[activeIndex] || wheelData[0] || { location: '', note: '' };
 
@@ -535,7 +521,7 @@ export const HomeScreen: React.FC = () => {
 
             <div className="mx-5 mt-3 rounded-[1.25rem] bg-white border border-zen-rock p-4 flex gap-3 shadow-mist">
                 <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-cta tracking-widest uppercase">下一站</p>
+                    <p className="text-[10px] text-cta tracking-widest uppercase">下一站 · {currentDayKey}</p>
                     <h3 className="font-serif text-xl mt-1 leading-snug">{activeItem.title || '暫無行程'}</h3>
                     <p className="text-xs text-zen-text-light mt-1">{activeItem.time}{activeItem.note ? ` · ${activeItem.note}` : ''}</p>
                     <p className="text-xs mt-2 text-zen-text">集合：{activeItem.location || '未設定'}</p>
@@ -567,7 +553,7 @@ export const HomeScreen: React.FC = () => {
             )}
 
             {/* Main Dashboard Stack */}
-            <div className="px-5 mt-3 relative flex flex-col gap-3 stagger-in">
+            <div className="px-5 mt-8 relative flex flex-col gap-3 stagger-in">
 
                 <div>
                     <div className="flex items-center justify-between px-1 mb-2">

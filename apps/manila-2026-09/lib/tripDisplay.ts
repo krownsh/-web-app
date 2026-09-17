@@ -33,3 +33,58 @@ export function daysUntil(startDate?: string) {
     today.setHours(0, 0, 0, 0);
     return Math.ceil((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
+
+export function calendarDateInTz(timeZone?: string, at = new Date()) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: timeZone || 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(at);
+}
+
+export function resolveHomeTripDay(opts: {
+    timezone?: string;
+    startDate?: string;
+    endDate?: string;
+    days: { day_key: string; calendar_date?: string; day_index: number }[];
+    now?: Date;
+}): { type: 'countdown' | 'day' | 'ended'; value: number; dayKey: string } {
+    const ordered = [...opts.days].sort((a, b) => {
+        const da = a.calendar_date || '';
+        const db = b.calendar_date || '';
+        if (da && db && da !== db) return da.localeCompare(db);
+        return a.day_index - b.day_index;
+    });
+    const fallbackKey = ordered[0]?.day_key || 'D1';
+    const todayKey = calendarDateInTz(opts.timezone, opts.now);
+    const start = opts.startDate || ordered[0]?.calendar_date;
+    const end = opts.endDate || ordered[ordered.length - 1]?.calendar_date;
+
+    if (start && todayKey < start) {
+        const startMs = new Date(`${start}T00:00:00`).getTime();
+        const todayMs = new Date(`${todayKey}T00:00:00`).getTime();
+        return {
+            type: 'countdown',
+            value: Math.max(1, Math.ceil((startMs - todayMs) / (1000 * 60 * 60 * 24))),
+            dayKey: fallbackKey,
+        };
+    }
+    if (end && todayKey > end) {
+        const last = ordered[ordered.length - 1];
+        return {
+            type: 'ended',
+            value: Math.max(last?.day_index + 1 || ordered.length, 1),
+            dayKey: last?.day_key || `D${Math.max(ordered.length, 1)}`,
+        };
+    }
+    const exact = ordered.find((d) => d.calendar_date === todayKey);
+    if (exact) {
+        return { type: 'day', value: exact.day_index + 1, dayKey: exact.day_key };
+    }
+    const started = [...ordered].reverse().find((d) => d.calendar_date && d.calendar_date <= todayKey);
+    if (started) {
+        return { type: 'day', value: started.day_index + 1, dayKey: started.day_key };
+    }
+    return { type: 'day', value: 1, dayKey: fallbackKey };
+}

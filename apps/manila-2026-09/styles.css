@@ -159,6 +159,10 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+dialog.photo-lightbox::backdrop {
+  background: rgb(12 18 16 / 0.82);
+}
+
 .glass-panel {
   background: #ffffff;
   border: 1px solid #e8dcc8;

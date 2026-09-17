@@ -159,13 +159,13 @@ export default function Gate({ children }: { children: React.ReactNode }) {
                     onSubmit={submitAuth}
                     className={`w-full rounded-2xl border border-cta/40 bg-zen-bg px-5 py-6 shadow-float ${error ? 'animate-shake' : ''}`}
                 >
-                    <h1 className="font-serif text-2xl text-center text-zen-moss">馬尼拉三日</h1>
+                    <h1 className="font-serif text-2xl text-center text-zen-moss">尼馬的拉</h1>
                     <h2 className="mt-1 text-center text-base font-bold text-zen-text">
                         {mode === 'login' ? '用信箱登入' : '註冊加入'}
                     </h2>
-                    <p className="mt-1 mb-3 text-center text-[11px] leading-snug text-zen-text-light">
+                    {/* <p className="mt-1 mb-3 text-center text-[11px] leading-snug text-zen-text-light">
                         {mode === 'login' ? '登入後再輸入團碼' : '只加入本行程 App'}
-                    </p>
+                    </p> */}
                     <label className="sr-only" htmlFor="gate-email">信箱</label>
                     <input
                         id="gate-email"
