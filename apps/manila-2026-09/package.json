@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler versions upload"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
