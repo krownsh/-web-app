@@ -116,7 +116,7 @@ const MapBudgetScreen: React.FC = () => {
 
     const handleAddClick = () => {
         if (isGuest) {
-            toast('訪客唯讀，無法新增帳目');
+            toast('目前無法新增帳目');
             return;
         }
         setEditingId(null);
@@ -145,7 +145,7 @@ const MapBudgetScreen: React.FC = () => {
 
     const handleEditClick = (record: any) => {
         if (isGuest) {
-            toast('訪客唯讀，無法改帳');
+            toast('目前無法修改帳目');
             return;
         }
         setEditingId(record.id);
@@ -212,7 +212,7 @@ const MapBudgetScreen: React.FC = () => {
             }
             setBudgets(prev => ({ ...prev, [editBudgetType]: amount }));
             setIsBudgetModalOpen(false);
-            toast(editBudgetType === 'public' ? '公積金預算已同步給全員' : '個人預算已更新');
+            toast(editBudgetType === 'public' ? '公積金預算已更新' : '個人預算已更新');
             await loadRecords(true);
         } catch (err) {
             console.error(err);
