@@ -294,9 +294,9 @@ const ItineraryScreen: React.FC = () => {
                             }`}
                         >
                             {thumb ? (
-                                <img src={thumb} alt="" className="h-24 w-full object-contain bg-zen-mist" />
+                                <img src={thumb} alt="" className="h-16 w-full object-cover bg-zen-mist" />
                             ) : (
-                                <div className="h-24 w-full bg-zen-mist" />
+                                <div className="h-16 w-full bg-zen-mist" />
                             )}
                             <div className="px-2 py-1.5 bg-white">
                                 <p className="text-[9px] text-cta">{item.dayLabel}</p>
@@ -314,7 +314,7 @@ const ItineraryScreen: React.FC = () => {
                             <img
                                 src={imageForItem(selectedItem.title, selectedItem.image || selectedItem.image_url)}
                                 alt={currentLocationName}
-                                className="w-full h-80 object-contain"
+                                className="w-full h-44 object-cover"
                             />
                         </div>
                     )}

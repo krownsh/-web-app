@@ -68,10 +68,13 @@ export const DevilPhotoRail: React.FC<Props> = ({ photos, emptyText }) => {
                 ref={dialogRef}
                 closedBy="any"
                 aria-label="醜照大圖"
-                className="photo-lightbox max-w-[min(92vw,40rem)] border-0 bg-transparent p-0"
+                className="photo-lightbox border-0 bg-transparent p-0"
                 onClose={() => setOpenId(null)}
+                onClick={(event) => {
+                    if (event.target === event.currentTarget) dialogRef.current?.close();
+                }}
             >
-                <div className="relative">
+                <div className="relative max-w-[min(92vw,40rem)]">
                     <button
                         type="button"
                         aria-label="關閉"

@@ -25,7 +25,7 @@ const MapBudgetScreen: React.FC = () => {
     const [editBudgetAmount, setEditBudgetAmount] = useState('');
 
     const { user } = useSession();
-    const { trip, days } = useTrip();
+    const { trip, days, isGuest } = useTrip();
     const myUserId = user?.id || '';
     const money = currencyMeta(trip?.currency);
 
@@ -115,6 +115,10 @@ const MapBudgetScreen: React.FC = () => {
     }, [trip?.id]);
 
     const handleAddClick = () => {
+        if (isGuest) {
+            toast('訪客唯讀，無法新增帳目');
+            return;
+        }
         setEditingId(null);
         const now = new Date();
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -140,6 +144,10 @@ const MapBudgetScreen: React.FC = () => {
     };
 
     const handleEditClick = (record: any) => {
+        if (isGuest) {
+            toast('訪客唯讀，無法改帳');
+            return;
+        }
         setEditingId(record.id);
         setNewRecord({
             title: record.title,
@@ -155,6 +163,7 @@ const MapBudgetScreen: React.FC = () => {
     };
 
     const handleSave = async () => {
+        if (isGuest) return;
         if (!newRecord.title || !newRecord.amount) return;
 
         const recordData: any = {
@@ -191,6 +200,7 @@ const MapBudgetScreen: React.FC = () => {
     };
 
     const handleSaveBudget = async () => {
+        if (isGuest) return;
         const amount = Number(editBudgetAmount);
         if (isNaN(amount)) return;
 
@@ -305,12 +315,14 @@ const MapBudgetScreen: React.FC = () => {
                         <div className="absolute -right-4 -top-4 size-24 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                         <div className="flex justify-between items-start">
                             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">公積金預算（全員共用）</span>
+                            {!isGuest && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); setEditBudgetType('public'); setEditBudgetAmount(budgets.public.toString()); setIsBudgetModalOpen(true); }}
                                 className="size-6 rounded-full bg-white/20 flex items-center justify-center active:scale-95"
                             >
                                 <span className="material-symbols-outlined text-[14px]">edit</span>
                             </button>
+                            )}
                         </div>
                         <div className="flex items-baseline gap-1 mt-1">
                             <span className="text-xl font-bold font-display tracking-tight tabular-nums">{money.symbol}{publicTotal.toLocaleString()}</span>
@@ -336,12 +348,14 @@ const MapBudgetScreen: React.FC = () => {
                         <div className="absolute -right-4 -top-4 size-24 bg-white/5 rounded-full blur-xl pointer-events-none"></div>
                         <div className="flex justify-between items-start">
                             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">我的預算</span>
+                            {!isGuest && (
                             <button
                                 onClick={(e) => { e.stopPropagation(); setEditBudgetType('self'); setEditBudgetAmount(budgets.self.toString()); setIsBudgetModalOpen(true); }}
                                 className="size-6 rounded-full bg-white/10 flex items-center justify-center active:scale-95"
                             >
                                 <span className="material-symbols-outlined text-[14px]">edit</span>
                             </button>
+                            )}
                         </div>
                         <div className="flex items-baseline gap-1 mt-1">
                             <span className="text-xl font-bold font-display tracking-tight tabular-nums">{money.symbol}{selfTotal.toLocaleString()}</span>
@@ -424,7 +438,7 @@ const MapBudgetScreen: React.FC = () => {
 
             </div>
 
-            {/* Add Button (Floating) - Moved outside scroll container */}
+            {!isGuest && (
             <div className="fixed bottom-32 right-6 z-[900]">
                 <button
                     onClick={handleAddClick}
@@ -433,6 +447,7 @@ const MapBudgetScreen: React.FC = () => {
                     <span className="material-symbols-outlined text-[28px]">add</span>
                 </button>
             </div>
+            )}
 
             {/* Add Record Modal */}
             <BottomSheet

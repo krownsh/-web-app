@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { HomeScreen } from './screens/HomeScreen';
 import ItineraryScreen from './screens/ItineraryScreen';
@@ -12,10 +12,11 @@ import BottomNav from './components/BottomNav';
 import { SessionProvider, TripProvider, useTrip } from './context/AppState';
 import Gate from './components/Gate';
 import { Toaster } from './components/ui/sonner';
+import { displayTripTitle } from './lib/tripDisplay';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const { trip, gameClaim, claimReady, refreshClaim } = useTrip();
+  const { trip, gameClaim, claimReady, refresh, refreshClaim } = useTrip();
 
   if (!trip?.id || !claimReady) {
     return (
@@ -24,7 +25,15 @@ const AppContent: React.FC = () => {
   }
 
   if (!gameClaim) {
-    return <ClaimTravelerScreen tripId={trip.id} onClaimed={() => refreshClaim()} />;
+    return (
+      <ClaimTravelerScreen
+        tripId={trip.id}
+        onClaimed={() => {
+          void refresh();
+          void refreshClaim();
+        }}
+      />
+    );
   }
 
   return (
@@ -47,6 +56,10 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    document.title = displayTripTitle();
+  }, []);
+
   return (
     <BrowserRouter>
       <SessionProvider>

@@ -4,7 +4,7 @@ import { MotionLink } from '../components/MotionLink';
 import { SupabaseService } from '../services/SupabaseService';
 import { MustBuyItem, ChecklistStatus, ItineraryItem, Traveler } from '../types';
 import { useSession, useTrip } from '../context/AppState';
-import { currencyMeta, weatherDescFromCode, weatherPlace, resolveHomeTripDay } from '../lib/tripDisplay';
+import { currencyMeta, displayTripTitle, weatherDescFromCode, weatherPlace, resolveHomeTripDay } from '../lib/tripDisplay';
 import { BottomSheet } from '../components/ui/bottom-sheet';
 import { CinemaHero } from '../components/CinemaHero';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
@@ -26,7 +26,7 @@ export const HomeScreen: React.FC = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const { user } = useSession();
-    const { trip, days, gameClaim } = useTrip();
+    const { trip, days, gameClaim, isGuest } = useTrip();
     const myUserId = user?.id || '';
     const greetName = gameClaim?.display_name || (user?.email || '旅人').split('@')[0];
     const todayLabel = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
@@ -259,7 +259,7 @@ export const HomeScreen: React.FC = () => {
         setData({
             groupNo: trip.group_no || '—',
             foreignGroupNo: trip.foreign_group_no || '—',
-            groupName: trip.title,
+            groupName: displayTripTitle(trip.title),
             leaderName: trip.leader_name || '—',
             leaderPhone: trip.leader_phone || '',
             badge: trip.badge || '—',
@@ -328,6 +328,7 @@ export const HomeScreen: React.FC = () => {
     }, [trip?.id, myUserId]);
 
     const handleAddMustBuy = async () => {
+        if (isGuest) return;
         if (!newMustBuy.item_name) return;
         const payload = {
             item_name: newMustBuy.item_name,
@@ -349,12 +350,14 @@ export const HomeScreen: React.FC = () => {
     };
 
     const toggleCheck = (id: string) => {
+        if (isGuest) return;
         const newStatus = !checkedItems[id];
         setCheckedItems(prev => ({ ...prev, [id]: newStatus }));
         SupabaseService.syncChecklistStatus(trip!.id, id, myUserId, newStatus).catch(console.error);
     };
 
     const handleDeleteMustBuy = async (id: string, e?: any) => {
+        if (isGuest) return;
         if (e) e.stopPropagation();
 
         // Optimistic UI
@@ -461,13 +464,13 @@ export const HomeScreen: React.FC = () => {
 
         updateTimeoutRef.current = setTimeout(() => {
             const item = wheelData[activeIndex];
-            if (item && item.id) {
+            if (item && item.id && !isGuest) {
                 SupabaseService.setCurrentItinerary(trip!.id, item.id).catch(console.error);
             }
         }, 1500);
 
         return () => { if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current); };
-    }, [activeIndex, wheelData]);
+    }, [activeIndex, wheelData, isGuest]);
 
     // --- Meeting Point Modal State ---
     const [meetingPointForm, setMeetingPointForm] = useState({ location: '', note: '' });
@@ -483,6 +486,7 @@ export const HomeScreen: React.FC = () => {
     }, [isMeetingModalOpen, activeItem]);
 
     const handleUpdateMeetingPoint = async () => {
+        if (isGuest) return;
         if (!activeItem || !activeItem.id) return;
 
         // Optimistic Update
@@ -517,7 +521,7 @@ export const HomeScreen: React.FC = () => {
                 </MotionLink>
             </div>
 
-            <CinemaHero tripTitle={trip?.title || '馬尼拉三日'} tripState={tripState} />
+            <CinemaHero tripTitle={displayTripTitle(trip?.title)} tripState={tripState} />
 
             <div className="mx-5 mt-3 rounded-[1.25rem] bg-white border border-zen-rock p-4 flex gap-3 shadow-mist">
                 <div className="flex-1 min-w-0">
@@ -525,7 +529,9 @@ export const HomeScreen: React.FC = () => {
                     <h3 className="font-serif text-xl mt-1 leading-snug">{activeItem.title || '暫無行程'}</h3>
                     <p className="text-xs text-zen-text-light mt-1">{activeItem.time}{activeItem.note ? ` · ${activeItem.note}` : ''}</p>
                     <p className="text-xs mt-2 text-zen-text">集合：{activeItem.location || '未設定'}</p>
+                    {!isGuest && (
                     <button type="button" onClick={() => setIsMeetingModalOpen(true)} className="text-[11px] text-cta mt-1 min-h-[32px]">設定集合點</button>
+                    )}
                 </div>
                 <img src={activeItem?.image || '/spots/intramuros.png'} alt="" className="w-24 h-24 rounded-xl object-cover shrink-0 bg-zen-mist" />
             </div>
@@ -758,6 +764,7 @@ export const HomeScreen: React.FC = () => {
                         {/* Header Actions */}
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-[10px] text-zen-text-light font-bold uppercase tracking-wider">我的清單</span>
+                            {!isGuest && (
                             <button
                                 onClick={() => setIsAddMustBuyModalOpen(true)}
                                 className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-zen-moss/10 text-zen-moss font-bold text-xs active:bg-zen-moss/20 transition-colors"
@@ -765,6 +772,7 @@ export const HomeScreen: React.FC = () => {
                                 <span className="material-symbols-outlined text-[16px]">add</span>
                                 新增項目
                             </button>
+                            )}
                         </div>
 
                         <div className="flex flex-col gap-3">
@@ -776,11 +784,10 @@ export const HomeScreen: React.FC = () => {
                             ) : mustBuyItems.length > 0 ? (
                                 mustBuyItems.map((item, i) => {
                                     const isChecked = checkedItems[item.id];
-                                    return (
-                                        <SwipeableRow key={item.id || i} onDelete={() => handleDeleteMustBuy(item.id)}>
+                                    const row = (
                                             <div
                                                 onClick={() => toggleCheck(item.id)}
-                                                className={`flex items-center gap-4 p-3 rounded-2xl border duration-300 cursor-pointer ${isChecked ? 'bg-zen-mist border-transparent opacity-60' : 'bg-white border-zen-rock'}`}
+                                                className={`flex items-center gap-4 p-3 rounded-2xl border duration-300 ${isGuest ? '' : 'cursor-pointer'} ${isChecked ? 'bg-zen-mist border-transparent opacity-60' : 'bg-white border-zen-rock'}`}
                                             >
                                                 {/* Checkbox */}
                                                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-transform duration-200 ${isChecked ? 'bg-zen-moss border-zen-moss scale-110' : 'border-zen-rock/30 bg-white'}`}>
@@ -817,6 +824,12 @@ export const HomeScreen: React.FC = () => {
                                                     </div>
                                                 )}
                                             </div>
+                                    );
+                                    return isGuest ? (
+                                        <div key={item.id || i}>{row}</div>
+                                    ) : (
+                                        <SwipeableRow key={item.id || i} onDelete={() => handleDeleteMustBuy(item.id)}>
+                                            {row}
                                         </SwipeableRow>
                                     );
                                 })

@@ -14,7 +14,7 @@
 - `wrangler` 已在該 app 的 `package.json`（約 4.56）
 - 本機當時 **尚未** `wrangler login`
 - 資料庫：共用 Supabase `https://vjwiuimmifdcvgilhwie.supabase.co`
-- 團碼：`MNL927`
+- **不用團碼**：註冊／登入後依 app slug 自動加入馬尼拉團
 - 前端只准用 publishable key。**禁止**把 `service_role` 放進 `.env` 的 `VITE_` 或任何客戶端
 
 ---
@@ -118,7 +118,7 @@ npx wrangler pages deploy dist --project-name manila-2026-09
 ### iPhone
 
 1. 用 **Safari**（不要用 LINE 內建瀏覽器）
-2. 登入 + 團碼 `MNL927`
+2. 註冊／登入（不用團碼，會自動入團）
 3. 分享 → **加入主畫面**
 4. 名稱應為「馬尼拉三日」
 5. 從主畫面圖示進去應為全螢幕、沒有 Safari 網址列
@@ -137,8 +137,9 @@ npx wrangler pages deploy dist --project-name manila-2026-09
 | 重整或進子頁面 404 | `dist/_redirects` 沒進去。建置後確認該檔還在。 |
 | 手機登不進去 | Redirect URLs 沒加 `pages.dev`。 |
 | 加到主畫面只是書籤 | 沒用 Safari/Chrome，或不是 HTTPS。 |
-| 手機還是舊版 | 再 deploy；必要時刪主畫面圖示重加。 |
+| 手機還是舊版 | 再 deploy；刪主畫面圖示重加，或清該網站資料（PWA 會快取舊 JS）。 |
 | 本機有資料、線上沒有 | 同一個 Supabase；多半沒登入或沒入團。 |
+| 已登入卻卡在舊抽籤／舊頭像 | Service worker。刪網站資料後從 `https://manila-2026-09.pages.dev` 重開。 |
 
 ---
 
@@ -150,5 +151,7 @@ npx wrangler pages deploy dist --project-name manila-2026-09
 - [ ] `wrangler pages project create manila-2026-09`（若尚未建立）
 - [ ] `wrangler pages deploy dist --project-name manila-2026-09`
 - [ ] 把印出的 `pages.dev` 加進 Supabase Redirect URLs
-- [ ] Safari / Chrome 打開、登入、加入主畫面
+- [ ] Safari / Chrome 打開、註冊／登入（無團碼）、加入主畫面
 - [ ] 測首頁團員卡、底部 tab、行程、記帳
+- [ ] 外測文件：`apps/manila-2026-09/docs/功能說明.md`、`測試規劃.md`
+- [ ] 清空測試資料：`apps/manila-2026-09/docs/RESET.md`

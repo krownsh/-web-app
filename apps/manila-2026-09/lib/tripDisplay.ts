@@ -1,5 +1,23 @@
 import type { Trip } from '../types';
 
+const TITLE = '馬尼拉三日';
+const TITLE_EGG = '日尼馬拉三';
+const TITLE_EGG_KEY = 'zentravel-title-egg';
+
+export function displayTripTitle(title?: string | null) {
+    const text = title || TITLE;
+    if (text !== TITLE) return text;
+    try {
+        const saved = sessionStorage.getItem(TITLE_EGG_KEY);
+        if (saved === TITLE || saved === TITLE_EGG) return saved;
+        const next = Math.random() < 0.4 ? TITLE_EGG : TITLE;
+        sessionStorage.setItem(TITLE_EGG_KEY, next);
+        return next;
+    } catch {
+        return TITLE;
+    }
+}
+
 export function currencyMeta(code?: string) {
     const c = (code || '').toUpperCase();
     if (c === 'PHP') return { code: 'PHP', symbol: '₱', name: '披索' };

@@ -1,6 +1,6 @@
 /** Local landmark photos, keyed by exact itinerary titles. */
 export const SPOT_IMAGES: Record<string, string> = {
-    '台中清泉崗起飛': '/spots/tpe.jpg',
+    '桃園機場起飛': '/spots/tpe.jpg',
     '抵達菲律賓': '/spots/naia.jpg',
     '韋劭上飛機': '/spots/weishao-plane.jpg',
     '韋劭抵達菲律賓': '/spots/weishao-arrive.jpg',

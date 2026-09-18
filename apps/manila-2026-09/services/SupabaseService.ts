@@ -9,7 +9,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('缺少 VITE_SUPABASE_URL 或 VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY，無法連線');
 }
 
-const JOIN_CODE = 'MNL927';
 const TRIP_SLUG = 'manila-2026-09';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -42,11 +41,8 @@ export const SupabaseService = {
         return (data || []) as Trip[];
     },
 
-    async joinTrip(code: string): Promise<string> {
-        if (code.trim().toUpperCase() !== JOIN_CODE) {
-            throw new Error('這個 App 只接受團碼 MNL927');
-        }
-        const { data, error } = await supabase.rpc('zentravel_join_trip', { p_code: code });
+    async joinThisAppTrip(): Promise<string> {
+        const { data, error } = await supabase.rpc('zentravel_join_this_app_trip');
         if (error) throw error;
         return data as string;
     },
@@ -261,17 +257,39 @@ export const SupabaseService = {
     },
 
     async getMyGameClaim(tripId: string) {
-        const { data, error } = await supabase.rpc('zentravel_my_game_claim', { p_trip_id: tripId });
+        const { data, error } = await supabase.rpc('zentravel_my_identity', { p_trip_id: tripId });
         if (error) throw error;
         const row = (data || [])[0];
-        return row
-            ? {
-                  traveler_id: row.traveler_id as string,
-                  display_name: row.display_name as string,
-                  photo_url: row.photo_url as string | null,
-                  lottery_played_at: (row.lottery_played_at as string | null) || null,
-              }
-            : null;
+        if (!row) return null;
+        const kind = row.kind === 'guest' ? 'guest' : 'traveler';
+        return {
+            kind: kind as 'guest' | 'traveler',
+            traveler_id: row.id as string,
+            display_name: row.display_name as string,
+            photo_url: row.photo_url as string | null,
+            lottery_played_at: (row.lottery_played_at as string | null) || null,
+        };
+    },
+
+    async getGuestPersonas(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_guest_personas_for_trip', { p_trip_id: tripId });
+        if (error) throw error;
+        return (data || []) as {
+            id: string;
+            display_name: string;
+            photo_url: string | null;
+            exclusive: boolean;
+            sort_order: number;
+            taken: boolean;
+        }[];
+    },
+
+    async claimGuestPersona(tripId: string, personaId: string) {
+        const { error } = await supabase.rpc('zentravel_claim_guest_persona', {
+            p_trip_id: tripId,
+            p_persona_id: personaId,
+        });
+        if (error) throw error;
     },
 
     async getUnclaimedTravelers(tripId: string) {

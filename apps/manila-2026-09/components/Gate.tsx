@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/SupabaseService';
 import { useSession, useTrip } from '../context/AppState';
+import { displayTripTitle } from '../lib/tripDisplay';
 
 function authMessage(message: string) {
     if (/invalid login credentials/i.test(message)) return '信箱或密碼不對';
@@ -13,7 +14,7 @@ function authMessage(message: string) {
     return message;
 }
 
-const MOSAIC_FACES = [
+const MOSAIC_OTHERS = [
     '/travelers/meihui.png',
     '/travelers/zhihao.png',
     '/travelers/haru.png',
@@ -22,11 +23,20 @@ const MOSAIC_FACES = [
     '/travelers/junxuan.png',
     '/travelers/weishao.png',
     '/travelers/yuxin.png',
-    '/travelers/chenghong.png',
+    '/guests/a.png',
+    '/guests/b.png',
+    '/guests/c.png',
+    '/guests/d.png',
 ];
 
-const WALLPAPER_COLS = 5;
-const WALLPAPER_ROWS = 10;
+const MOSAIC_FACES = [
+    ...MOSAIC_OTHERS,
+    '/travelers/chenghong.png',
+    ...MOSAIC_OTHERS,
+];
+
+const WALLPAPER_COLS = 6;
+const WALLPAPER_ROWS = 12;
 
 function wallpaperStyle(row: number, col: number) {
     const brick = col % 2 === 0 ? 0 : 28;
@@ -41,7 +51,7 @@ function wallpaperStyle(row: number, col: number) {
 function LoginStage({ children }: { children: React.ReactNode }) {
     return (
         <div className="relative flex h-full min-h-0 items-center justify-center overflow-hidden bg-zen-dark px-6 page-enter">
-            <div className="absolute -inset-16 grid grid-cols-5 gap-x-7 gap-y-8" aria-hidden="true">
+            <div className="absolute -inset-10 grid grid-cols-6 gap-x-5 gap-y-6" aria-hidden="true">
                 {Array.from({ length: WALLPAPER_ROWS * WALLPAPER_COLS }, (_, i) => {
                     const row = Math.floor(i / WALLPAPER_COLS);
                     const col = i % WALLPAPER_COLS;
@@ -64,14 +74,14 @@ function LoginStage({ children }: { children: React.ReactNode }) {
 
 export default function Gate({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading, enrolled, enrollThisApp } = useSession();
-    const { trip, loading: tripLoading, joinWithCode } = useTrip();
+    const { trip, loading: tripLoading } = useTrip();
     const [mode, setMode] = useState<'login' | 'register'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [code, setCode] = useState('');
     const [error, setError] = useState('');
     const [hint, setHint] = useState('');
     const [busy, setBusy] = useState(false);
+    const [brandTitle] = useState(() => displayTripTitle());
 
     const submitAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -124,19 +134,6 @@ export default function Gate({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const join = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
-        setBusy(true);
-        try {
-            await joinWithCode(code);
-        } catch (err: any) {
-            setError(err.message || '加入失敗');
-        } finally {
-            setBusy(false);
-        }
-    };
-
     if (authLoading || (user && enrolled && tripLoading)) {
         return (
             <div className="h-full flex items-center justify-center bg-zen-dark text-zen-mist page-enter">
@@ -159,7 +156,7 @@ export default function Gate({ children }: { children: React.ReactNode }) {
                     onSubmit={submitAuth}
                     className={`w-full rounded-2xl border border-cta/40 bg-zen-bg px-5 py-6 shadow-float ${error ? 'animate-shake' : ''}`}
                 >
-                    <h1 className="font-serif text-2xl text-center text-zen-moss">尼馬的拉</h1>
+                    <h1 className="font-serif text-2xl text-center text-zen-moss">{brandTitle}</h1>
                     <h2 className="mt-1 text-center text-base font-bold text-zen-text">
                         {mode === 'login' ? '用信箱登入' : '註冊加入'}
                     </h2>
@@ -211,35 +208,19 @@ export default function Gate({ children }: { children: React.ReactNode }) {
 
     if (!trip) {
         return (
-            <LoginStage>
-                <form
-                    onSubmit={join}
-                    className={`w-full rounded-2xl border border-cta/40 bg-zen-bg px-5 py-6 shadow-float ${error ? 'animate-shake' : ''}`}
-                >
-                    <h1 className="font-serif text-2xl text-center text-zen-moss">加入行程</h1>
-                    <p className="mt-1 mb-3 text-center text-[11px] text-zen-text-light">請輸入團碼</p>
-                    <label className="sr-only" htmlFor="gate-code">團碼</label>
-                    <input
-                        id="gate-code"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value.toUpperCase())}
-                        placeholder="MNL927"
-                        autoComplete="off"
-                        className="w-full rounded-xl border-2 border-zen-moss/70 bg-white px-2 py-3 text-center font-serif text-xl tracking-[0.28em] min-h-[48px] outline-none focus:ring-2 focus:ring-cta/60"
-                    />
-                    {error && <p className="mt-2 text-xs text-red-500 animate-fade-in">{error}</p>}
-                    <button disabled={busy || !code} className={`${ctaClass} mt-3`}>
-                        {busy ? '請稍候…' : '加入'}
-                    </button>
+            <div className="h-full flex items-center justify-center bg-zen-dark text-zen-mist page-enter">
+                <div className="flex flex-col items-center gap-3 px-6 text-center">
+                    <div className="size-8 border-2 border-white/20 border-t-cta rounded-full animate-spin" />
+                    <p className="text-sm">正在加入行程…</p>
                     <button
                         type="button"
-                        className="mt-2 w-full text-[11px] text-zen-moss underline min-h-[36px] cursor-pointer"
+                        className="mt-2 text-[11px] text-zen-mist underline min-h-[36px] cursor-pointer"
                         onClick={() => supabase.auth.signOut()}
                     >
                         登出
                     </button>
-                </form>
-            </LoginStage>
+                </div>
+            </div>
         );
     }
 

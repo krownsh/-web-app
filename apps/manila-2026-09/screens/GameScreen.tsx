@@ -3,6 +3,7 @@ import { useSession, useTrip } from '../context/AppState';
 import { SupabaseService } from '../services/SupabaseService';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import { compressImageFile } from '../lib/compressImage';
+import { hasGuestLottery, markGuestLottery } from '../lib/guestLottery';
 import { GameDrawReveal } from '../components/GameDrawReveal';
 import { GameGuessPicker } from '../components/GameGuessPicker';
 import { GameLotteryBridge } from '../components/GameLotteryBridge';
@@ -21,7 +22,7 @@ type Draw = {
 };
 
 export const GameScreen: React.FC = () => {
-    const { trip } = useTrip();
+    const { trip, gameClaim, isGuest } = useTrip();
     const { user } = useSession();
     const tripId = trip?.id || '';
     const userId = user?.id || '';
@@ -51,15 +52,50 @@ export const GameScreen: React.FC = () => {
 
     const pool = travelers.filter((t) => t.display_name !== 'Haru');
 
+    const guestDraw = (): Draw | null => {
+        if (!gameClaim) return null;
+        return {
+            drawer_id: gameClaim.traveler_id,
+            angel_id: gameClaim.traveler_id,
+            devil_id: gameClaim.traveler_id,
+            angel_name: gameClaim.display_name,
+            devil_name: gameClaim.display_name,
+            angel_photo: gameClaim.photo_url,
+            devil_photo: gameClaim.photo_url,
+        };
+    };
+
     const loadClaimGate = async () => {
         if (!tripId || !userId) return;
-        const claim = await SupabaseService.getMyGameClaim(tripId);
+        const claim = gameClaim || (await SupabaseService.getMyGameClaim(tripId));
         setClaimId(claim?.traveler_id || null);
-        setLotteryPlayed(!!claim?.lottery_played_at);
+        if (claim?.kind === 'guest' || isGuest) {
+            setLotteryPlayed(hasGuestLottery(tripId, userId));
+        } else {
+            setLotteryPlayed(!!claim?.lottery_played_at);
+        }
     };
 
     const reloadPlay = async () => {
         if (!tripId || !userId) return;
+        if (isGuest) {
+            const [people, wishRows, info] = await Promise.all([
+                SupabaseService.getTravelers(tripId),
+                SupabaseService.getGameWishes(tripId),
+                SupabaseService.getGameRevealInfo(tripId),
+            ]);
+            setTravelers(people);
+            setDraw(guestDraw());
+            setWishes(Object.fromEntries(wishRows.map((w) => [w.traveler_id, w.body])));
+            setGuessAngel('');
+            setGuessDevil('');
+            setRevealed(info.revealed);
+            setRevealAt(info.reveal_at);
+            if (info.revealed) {
+                setBoard(await SupabaseService.getAllGameDraws(tripId));
+            }
+            return;
+        }
         const [people, myDraw, wishRows, guess, info] = await Promise.all([
             SupabaseService.getTravelers(tripId),
             SupabaseService.getMyGameDraw(tripId),
@@ -79,9 +115,9 @@ export const GameScreen: React.FC = () => {
         }
     };
 
-    const loadDevilPhotos = async (devilId: string) => {
+    const loadDevilPhotos = async (devilId?: string) => {
         if (!tripId) return;
-        const photoRows = await SupabaseService.getDevilPhotos(tripId, devilId);
+        const photoRows = await SupabaseService.getDevilPhotos(tripId, isGuest ? undefined : devilId);
         const signed = await Promise.all(
             photoRows.map(async (p) => ({
                 id: p.id,
@@ -102,7 +138,7 @@ export const GameScreen: React.FC = () => {
 
     useEffect(() => {
         loadClaimGate().catch((err) => setMsg(err.message));
-    }, [tripId, userId]);
+    }, [tripId, userId, gameClaim?.traveler_id, isGuest]);
 
     useEffect(() => {
         if (!lotteryPlayed) return;
@@ -110,14 +146,19 @@ export const GameScreen: React.FC = () => {
     }, [lotteryPlayed, tripId, userId]);
 
     useEffect(() => {
-        if (!lotteryPlayed || mode !== 'devil' || !draw?.devil_id) return;
-        loadDevilPhotos(draw.devil_id).catch((err) => setMsg(err.message));
-    }, [lotteryPlayed, mode, tripId, draw?.devil_id]);
+        if (!lotteryPlayed || mode !== 'devil') return;
+        if (!isGuest && !draw?.devil_id) return;
+        loadDevilPhotos(draw?.devil_id).catch((err) => setMsg(err.message));
+    }, [lotteryPlayed, mode, tripId, draw?.devil_id, isGuest]);
 
     const finishLottery = async () => {
         setBusy(true);
         setMsg('');
         try {
+            if (isGuest) {
+                markGuestLottery(tripId, userId);
+                return guestDraw();
+            }
             await SupabaseService.finishGameLottery(tripId);
             return await SupabaseService.getMyGameDraw(tripId);
         } catch (err: any) {
@@ -129,6 +170,10 @@ export const GameScreen: React.FC = () => {
     };
 
     const saveWish = async () => {
+        if (isGuest) {
+            setMsg('訪客唯讀');
+            return;
+        }
         if (!claimId || !wishDraft.trim()) return;
         setBusy(true);
         try {
@@ -143,6 +188,11 @@ export const GameScreen: React.FC = () => {
     };
 
     const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isGuest) {
+            setMsg('訪客唯讀，不能上傳');
+            e.target.value = '';
+            return;
+        }
         const files = Array.from(e.target.files || []);
         e.target.value = '';
         if (!files.length || !userId) return;
@@ -163,6 +213,10 @@ export const GameScreen: React.FC = () => {
     };
 
     const pickGuess = async (role: 'angel' | 'devil', id: string) => {
+        if (isGuest) {
+            setMsg('訪客唯讀，不能猜人');
+            return;
+        }
         const nextAngel = role === 'angel' ? id : guessAngel || null;
         const nextDevil = role === 'devil' ? id : guessDevil || null;
         if (role === 'angel') setGuessAngel(id);
@@ -226,13 +280,17 @@ export const GameScreen: React.FC = () => {
                 {draw && mode === 'angel' && (
                     <p className="mt-3 text-sm">
                         <span className="text-cta font-bold">天使任務：</span>
-                        你抽到 {draw.angel_name}。看願望牆，不經意提供對方想要或想吃的東西，且不能被發現你是小天使。
+                        {isGuest
+                            ? '這是訪客體驗：天使與惡魔都是你自己的訪客頭像。看願望牆就好，不用送禮。'
+                            : `你抽到 ${draw.angel_name}。看願望牆，不經意提供對方想要或想吃的東西，且不能被發現你是小天使。`}
                     </p>
                 )}
                 {draw && mode === 'devil' && (
                     <p className="mt-3 text-sm">
-                        <span className="font-bold">惡魔任務：</span>
-                        你抽到 {draw.devil_name}。在不被發現的情況下偷拍醜照並上傳；這面牆只放 {draw.devil_name} 的照片。
+                        <span className="text-cta font-bold">惡魔任務：</span>
+                        {isGuest
+                            ? '這是訪客體驗：你可以看醜照牆，但不能上傳或參加正式配對。'
+                            : `你抽到 ${draw.devil_name}。在不被發現的情況下偷拍醜照並上傳；這面牆只放 ${draw.devil_name} 的照片。`}
                     </p>
                 )}
             </section>
@@ -240,7 +298,9 @@ export const GameScreen: React.FC = () => {
             {mode === 'angel' && (
             <section className="mt-8">
                 <h2 className="font-serif text-2xl">天使 · 願望牆</h2>
-                <p className="text-xs text-zen-text-light mt-1">點別人的頭像猜你的天使（只自己看得到）。每人填一次願望，填完不能改。</p>
+                <p className="text-xs text-zen-text-light mt-1">
+                    {isGuest ? '訪客可看牆，不能填願望或猜人。' : '點別人的頭像猜你的天使（只自己看得到）。每人填一次願望，填完不能改。'}
+                </p>
                 <div className="mt-5 grid grid-cols-2 gap-x-3 gap-y-8">
                     {pool.map((person) => {
                         const isMe = person.id === claimId;
@@ -274,7 +334,7 @@ export const GameScreen: React.FC = () => {
                                         {wishes[person.id]}
                                         <span className="pointer-events-none absolute left-1/2 -bottom-[6px] h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white border-b border-r border-zen-rock" />
                                     </div>
-                                ) : isMe ? (
+                                ) : isMe && !isGuest ? (
                                     <div className="w-full" onClick={(e) => e.stopPropagation()}>
                                         <textarea
                                             value={wishDraft}
@@ -295,7 +355,7 @@ export const GameScreen: React.FC = () => {
                                     <p className="text-[10px] text-zen-text-light">還沒填</p>
                                 )}
                             </div>
-                            {isMe ? (
+                            {isMe || isGuest ? (
                                 avatar
                             ) : (
                                 <button
@@ -318,7 +378,7 @@ export const GameScreen: React.FC = () => {
             {mode === 'devil' && (
             <section className="mt-8">
                 <h2 className="font-serif text-2xl">惡魔 · 醜照牆</h2>
-                {draw && (
+                {draw && !isGuest && (
                     <button
                         type="button"
                         disabled={busy}
@@ -332,13 +392,13 @@ export const GameScreen: React.FC = () => {
                 <div className="mt-3">
                     <DevilPhotoRail
                         photos={photos.map((p) => ({ id: p.id, url: p.url, caption: nameOf(p.target_id) }))}
-                        emptyText={draw ? `還沒有 ${draw.devil_name} 的醜照` : '還沒有醜照'}
+                        emptyText={isGuest ? '還沒有醜照' : (draw ? `還沒有 ${draw.devil_name} 的醜照` : '還沒有醜照')}
                     />
                 </div>
             </section>
             )}
 
-            {mode === 'devil' && (
+            {mode === 'devil' && !isGuest && (
             <section className="mt-8">
                 <h2 className="font-serif text-2xl">猜我的惡魔</h2>
                 <p className="text-xs text-zen-text-light mt-1">點頭像標記，只自己看得到。點了就存好。</p>

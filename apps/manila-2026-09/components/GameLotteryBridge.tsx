@@ -103,7 +103,7 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
         <div className="absolute inset-0 z-[10050] overflow-hidden bg-zen-dark text-white">
             <video
                 ref={videoRef}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-contain object-center"
                 src={LOTTERY_VIDEO}
                 loop={false}
                 muted
@@ -148,7 +148,7 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
                     <p className="text-[10px] tracking-[0.35em] uppercase text-white/80">你抽中了</p>
                     <div className="mt-6 flex w-full justify-center gap-3">
                         <ResultCard label="你的天使" name={result.angel_name} photo={result.angel_photo} accent="text-cta" />
-                        <ResultCard label="你的惡魔" name={result.devil_name} photo={result.devil_photo} accent="text-white/80" />
+                        <ResultCard label="你的惡魔" name={result.devil_name} photo={result.devil_photo} accent="text-cta" />
                     </div>
                     <button
                         type="button"

@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, SupabaseService } from '../services/SupabaseService';
+import { hasGuestLottery } from '../lib/guestLottery';
 import { Trip, TripDay } from '../types';
 
 interface SessionState {
@@ -12,6 +13,7 @@ interface SessionState {
 }
 
 export type GameClaim = {
+    kind: 'guest' | 'traveler';
     traveler_id: string;
     display_name: string;
     photo_url: string | null;
@@ -22,13 +24,13 @@ interface TripState {
     trips: Trip[];
     trip: Trip | null;
     days: TripDay[];
-    role: 'owner' | 'member' | null;
+    role: 'owner' | 'member' | 'guest' | null;
+    isGuest: boolean;
     loading: boolean;
     gameClaim: GameClaim | null;
     claimReady: boolean;
     refresh: () => Promise<void>;
     refreshClaim: () => Promise<void>;
-    joinWithCode: (code: string) => Promise<void>;
 }
 
 const SessionContext = createContext<SessionState | null>(null);
@@ -115,7 +117,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [trips, setTrips] = useState<Trip[]>([]);
     const [trip, setTrip] = useState<Trip | null>(null);
     const [days, setDays] = useState<TripDay[]>([]);
-    const [role, setRole] = useState<'owner' | 'member' | null>(null);
+    const [role, setRole] = useState<'owner' | 'member' | 'guest' | null>(null);
     const [loading, setLoading] = useState(true);
     const [gameClaim, setGameClaim] = useState<GameClaim | null>(null);
     const [claimReady, setClaimReady] = useState(false);
@@ -135,7 +137,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         try {
             const claim = await SupabaseService.getMyGameClaim(trip.id);
-            setGameClaim(claim);
+            if (claim?.kind === 'guest' && hasGuestLottery(trip.id, userId)) {
+                setGameClaim({ ...claim, lottery_played_at: claim.lottery_played_at || new Date().toISOString() });
+            } else {
+                setGameClaim(claim);
+            }
         } catch {
             setGameClaim(null);
         } finally {
@@ -157,7 +163,15 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         if (!bootstrapped.current) setLoading(true);
         try {
-            const list = await SupabaseService.getMyTrips();
+            let list = await SupabaseService.getMyTrips();
+            if (list.length === 0) {
+                try {
+                    await SupabaseService.joinThisAppTrip();
+                } catch (err) {
+                    console.error(err);
+                }
+                list = await SupabaseService.getMyTrips();
+            }
             setTrips(list);
             const active = list[0] || null;
             setTrip(active);
@@ -170,7 +184,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .eq('trip_id', active.id)
                     .eq('user_id', userId)
                     .maybeSingle();
-                setRole((member?.role as 'owner' | 'member') || 'member');
+                const nextRole = (member?.role as 'owner' | 'member' | 'guest') || 'member';
+                setRole(nextRole);
             } else {
                 setDays([]);
                 setRole(null);
@@ -194,10 +209,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshClaim().catch(() => undefined);
     }, [refreshClaim]);
 
-    const joinWithCode = async (code: string) => {
-        await SupabaseService.joinTrip(code.trim());
-        await refresh();
-    };
+    const isGuest = role === 'guest' || gameClaim?.kind === 'guest';
 
     const value = useMemo(
         () => ({
@@ -205,14 +217,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             trip,
             days,
             role,
+            isGuest,
             loading,
             gameClaim,
             claimReady,
             refresh,
             refreshClaim,
-            joinWithCode,
         }),
-        [trips, trip, days, role, loading, gameClaim, claimReady, refresh, refreshClaim]
+        [trips, trip, days, role, isGuest, loading, gameClaim, claimReady, refresh, refreshClaim]
     );
 
     return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
