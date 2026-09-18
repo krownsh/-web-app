@@ -31,6 +31,7 @@ interface TripState {
     claimReady: boolean;
     refresh: () => Promise<void>;
     refreshClaim: () => Promise<void>;
+    markLotteryPlayed: () => void;
 }
 
 const SessionContext = createContext<SessionState | null>(null);
@@ -153,6 +154,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [userId, enrolled, trip?.id, applyClaim]);
 
+    const markLotteryPlayed = useCallback(() => {
+        const now = new Date().toISOString();
+        setGameClaim((prev) => (prev ? { ...prev, lottery_played_at: prev.lottery_played_at || now } : prev));
+    }, []);
+
     const refresh = useCallback(async () => {
         if (!userId || !enrolled) {
             bootstrapped.current = false;
@@ -235,8 +241,9 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             claimReady,
             refresh,
             refreshClaim,
+            markLotteryPlayed,
         }),
-        [trips, trip, days, role, isGuest, loading, gameClaim, claimReady, refresh, refreshClaim]
+        [trips, trip, days, role, isGuest, loading, gameClaim, claimReady, refresh, refreshClaim, markLotteryPlayed]
     );
 
     return <TripContext.Provider value={value}>{children}</TripContext.Provider>;

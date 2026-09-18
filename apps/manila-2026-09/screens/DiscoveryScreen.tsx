@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { SupabaseService } from '../services/SupabaseService';
 import { useTrip } from '../context/AppState';
 import { groupItineraryByDay } from '../lib/itineraryGroup';
+import { resolveItemCoords, spreadOverlappingMarkers } from '../lib/itineraryCoords';
 
 // Full 5-Day Itinerary Data (Mirrored from ItineraryScreen for default fallback)
 const FULL_ITINERARY_DATA: any = {
@@ -70,40 +71,6 @@ const FULL_ITINERARY_DATA: any = {
             { id: 'd5-4', type: 'flight', time: '16:00', title: '曼谷 → 桃園', desc: '前往機場，搭機返回溫暖的家。' },
         ]
     }
-};
-
-// Coordinate Registry for Known Locations (Approximation)
-const COORDINATE_MAP: Record<string, [number, number]> = {
-    // Bangkok Core
-    '洽圖恰假日市集': [13.800, 100.551],
-    '愛樂威四面佛': [13.744, 100.540],
-    'Central World': [13.746, 100.539],
-    'BIG C 大賣場': [13.747, 100.541],
-    '沙薇泰式料理': [13.724, 100.578], // Approx
-    'Grand Fourwings': [13.766, 100.643], // Approx
-    'ICONSIAM 暹羅天地': [13.726, 100.510],
-    '喬德夜市': [13.757, 100.566],
-    '金佛寺': [13.737, 100.514],
-    '嘟嘟車遊唐人街': [13.740, 100.509],
-    'MEGA BANGNA': [13.633, 100.680], // Bangna
-
-    // Outskirts / Floating Markets
-    '丹能莎朵水上市場': [13.519, 99.960],
-    '爆笑鐵支路': [13.407, 100.000], // Maeklong
-    '樹中佛': [13.411, 99.948], // Wat Bang Kung
-    '泰拳公園': [13.412, 99.949], // Near Tree Buddha
-
-    // Hua Hin
-    'CICADA 週末創意市集': [12.534, 99.966],
-    'ACE OF HUA HIN': [12.651, 99.952], // Cha-Am/Hua Hin border
-    '飯店設施 / 華欣海灘': [12.570, 99.960],
-    '皇家火車站': [12.567, 99.955],
-    '駱駝共和國': [12.780, 99.970], // Cha-Am
-    '華欣夜市': [12.572, 99.957],
-    '網美海景祕密咖啡廳': [12.750, 99.970],
-    '拷龍洞': [13.111, 99.938],
-    '瑪哈拉碼頭文青市集': [13.754, 100.489],
-    '湄南河遊船': [13.730, 100.510],
 };
 
 // Helper to create custom div icons
@@ -222,13 +189,14 @@ const DiscoveryScreen: React.FC = () => {
 
     // Map items to locations if coordinates exist
     const mapLocations = useMemo(() => {
-        return dayItems
-            .filter((item: any) => item.lat && item.lng)
-            .map((item: any) => ({
-                ...item,
-                lat: item.lat,
-                lng: item.lng,
-            }));
+        const withCoords = dayItems
+            .map((item: any) => {
+                const coords = resolveItemCoords(item);
+                if (!coords) return null;
+                return { ...item, lat: coords.lat, lng: coords.lng };
+            })
+            .filter((item: any): item is any => !!item);
+        return spreadOverlappingMarkers(withCoords);
     }, [dayItems]);
 
     const selectedLocation = useMemo(() => {

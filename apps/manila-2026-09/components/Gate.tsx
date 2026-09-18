@@ -14,7 +14,7 @@ function authMessage(message: string) {
     return message;
 }
 
-const MOSAIC_OTHERS = [
+const MOSAIC_FACES = [
     '/travelers/meihui.png',
     '/travelers/zhihao.png',
     '/travelers/haru.png',
@@ -23,48 +23,59 @@ const MOSAIC_OTHERS = [
     '/travelers/junxuan.png',
     '/travelers/weishao.png',
     '/travelers/yuxin.png',
+    '/travelers/chenghong.png',
     '/guests/a.png',
     '/guests/b.png',
     '/guests/c.png',
     '/guests/d.png',
 ];
 
-const MOSAIC_FACES = [
-    ...MOSAIC_OTHERS,
-    '/travelers/chenghong.png',
-    ...MOSAIC_OTHERS,
-];
-
 const WALLPAPER_COLS = 6;
 const WALLPAPER_ROWS = 12;
 
-function wallpaperStyle(row: number, col: number) {
-    const brick = col % 2 === 0 ? 0 : 28;
-    const y = brick + ((row * 13 + col * 17) % 36) - 14;
-    const x = ((row * 11 + col * 19) % 22) - 10;
-    const rot = ((row * 7 + col * 23) % 15) - 7;
+function shuffle<T>(items: T[]): T[] {
+    const next = [...items];
+    for (let i = next.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [next[i], next[j]] = [next[j], next[i]];
+    }
+    return next;
+}
+
+function wallpaperStyle(index: number) {
+    const col = index % WALLPAPER_COLS;
+    const brick = col % 2 === 0 ? 0 : 20;
+    const x = ((index * 47) % 33) - 16;
+    const y = brick + ((index * 31) % 41) - 20;
+    const rot = ((index * 19) % 29) - 14;
     return {
         transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`,
     };
 }
 
+function buildMosaic() {
+    const count = WALLPAPER_ROWS * WALLPAPER_COLS;
+    const faces: string[] = [];
+    while (faces.length < count) {
+        faces.push(...shuffle(MOSAIC_FACES));
+    }
+    return faces.slice(0, count);
+}
+
 function LoginStage({ children }: { children: React.ReactNode }) {
+    const [faces] = useState(buildMosaic);
     return (
         <div className="relative flex h-full min-h-0 items-center justify-center overflow-hidden bg-zen-dark px-6 page-enter">
-            <div className="absolute -inset-10 grid grid-cols-6 gap-x-5 gap-y-6" aria-hidden="true">
-                {Array.from({ length: WALLPAPER_ROWS * WALLPAPER_COLS }, (_, i) => {
-                    const row = Math.floor(i / WALLPAPER_COLS);
-                    const col = i % WALLPAPER_COLS;
-                    return (
-                        <img
-                            key={i}
-                            src={MOSAIC_FACES[i % MOSAIC_FACES.length]}
-                            alt=""
-                            style={wallpaperStyle(row, col)}
-                            className="size-[4.5rem] justify-self-center object-contain"
-                        />
-                    );
-                })}
+            <div className="absolute -inset-14 grid grid-cols-6 gap-x-4 gap-y-5" aria-hidden="true">
+                {faces.map((src, i) => (
+                    <img
+                        key={`${src}-${i}`}
+                        src={src}
+                        alt=""
+                        style={wallpaperStyle(i)}
+                        className="size-[4.5rem] justify-self-center object-contain"
+                    />
+                ))}
             </div>
             <div className="absolute inset-0 bg-zen-dark/40" aria-hidden="true" />
             <div className="relative z-10 w-full max-w-[20rem]">{children}</div>

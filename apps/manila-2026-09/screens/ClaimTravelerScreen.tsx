@@ -102,8 +102,8 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
                             )}
                             {face.claimed && (
                                 <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                                    <span className="-rotate-[22deg] rounded-sm border-[3px] border-cta px-1.5 py-0.5 font-black text-[11px] tracking-widest text-cta shadow-[2px_2px_0_rgba(234,88,12,0.25)] bg-white/40">
-                                        CHECK IN
+                                    <span className="-rotate-[22deg] rounded-sm border-[3px] border-cta px-1.5 py-0.5 font-black text-[10px] tracking-[0.18em] text-cta shadow-[2px_2px_0_rgba(234,88,12,0.25)] bg-white/40">
+                                        CHECKED IN
                                     </span>
                                 </span>
                             )}
