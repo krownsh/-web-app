@@ -253,6 +253,7 @@ export const SupabaseService = {
             .eq('id', id)
             .select();
         if (error) throw error;
+        if (!data?.length) throw new Error('集合點沒有寫入資料庫');
         return data;
     },
 

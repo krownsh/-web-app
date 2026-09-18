@@ -134,7 +134,7 @@ const DEFAULT_DB: Record<string, LocationGuide> = {
 // ----------------------------------------------------------------------
 
 const ItineraryScreen: React.FC = () => {
-    const { trip, days } = useTrip();
+    const { trip, days, isGuest } = useTrip();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
 
@@ -191,6 +191,7 @@ const ItineraryScreen: React.FC = () => {
     }, [allGuides]);
 
     const handleAddLink = () => {
+        if (isGuest) return;
         if (!newLink.title) return;
         setAllGuides(prev => ({
             ...prev,
@@ -216,6 +217,7 @@ const ItineraryScreen: React.FC = () => {
     };
 
     const handleAddItem = () => {
+        if (isGuest) return;
         if (!newItem.name) return;
         setAllGuides(prev => ({
             ...prev,
@@ -330,11 +332,13 @@ const ItineraryScreen: React.FC = () => {
                 </div>
 
                 <div className="px-6 mt-8 mb-10">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-1">
                         <h2 className="font-serif text-xl text-zen-text">收藏文章</h2>
                     </div>
+                    <p className="text-[11px] text-zen-text-light mb-4">只存在這支手機，別人看不到，換手機也沒有。</p>
 
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                        {!isGuest && (
                         <button
                             onClick={() => setShowLinkModal(true)}
                             className="shrink-0 size-28 rounded-[1.25rem] border border-dashed border-zen-rock flex flex-col items-center justify-center gap-2 text-zen-text-light bg-white"
@@ -342,8 +346,29 @@ const ItineraryScreen: React.FC = () => {
                             <span className="material-symbols-outlined text-[28px]">add</span>
                             <span className="text-[10px] font-medium">新增連結</span>
                         </button>
+                        )}
 
                         {currentGuide.links.map((link) => (
+                            isGuest ? (
+                                <a
+                                    key={link.id}
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block shrink-0 h-28 w-28 p-3 rounded-[1.25rem] bg-white border border-zen-rock flex flex-col justify-between"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className="size-7 rounded-full bg-zen-mist flex items-center justify-center text-zen-moss">
+                                            <span className="material-symbols-outlined text-[16px]">{link.icon}</span>
+                                        </div>
+                                        <span className="material-symbols-outlined text-zen-rock text-[16px]">open_in_new</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xs font-medium text-zen-text leading-tight line-clamp-2 mb-1">{link.title}</h3>
+                                        <span className="text-[9px] text-zen-text-light bg-zen-mist px-1.5 py-0.5 rounded">{link.source}</span>
+                                    </div>
+                                </a>
+                            ) : (
                             <SwipeableRow key={link.id} onDelete={() => handleDeleteLocalItem('links', link.id)}>
                                 <a
                                     href={link.url}
@@ -363,13 +388,15 @@ const ItineraryScreen: React.FC = () => {
                                     </div>
                                 </a>
                             </SwipeableRow>
+                            )
                         ))}
                     </div>
                 </div>
 
                 <div className="px-6 mb-10">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-1">
                         <h2 className="font-serif text-xl text-zen-text">必買清單</h2>
+                        {!isGuest && (
                         <button
                             onClick={() => setShowItemModal(true)}
                             className="btn-cta text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 min-h-[44px]"
@@ -377,7 +404,9 @@ const ItineraryScreen: React.FC = () => {
                             <span className="material-symbols-outlined text-[14px]">add</span>
                             新增
                         </button>
+                        )}
                     </div>
+                    <p className="text-[11px] text-zen-text-light mb-4">攻略頁新增的必買只存在這支手機。要給全團看，請改在首頁新增並選「推薦給大家」。</p>
 
                     <div className="flex flex-col gap-3">
                         {currentGuide.mustBuy.length === 0 && (
@@ -387,6 +416,20 @@ const ItineraryScreen: React.FC = () => {
                         )}
 
                         {currentGuide.mustBuy.map((item) => (
+                            isGuest ? (
+                                <div key={item.id} className="group p-4 rounded-[1.25rem] bg-white border border-zen-rock flex items-start gap-4">
+                                    <button className="size-5 mt-1 rounded-full border-2 border-zen-rock shrink-0"></button>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start gap-3">
+                                            <h3 className="text-base font-medium text-zen-text leading-tight">{item.name}</h3>
+                                            <div className="px-2 py-0.5 rounded-md bg-zen-mist text-xs text-zen-moss font-serif">
+                                                {item.price}
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-zen-text-light mt-1.5 leading-relaxed">{item.desc}</p>
+                                    </div>
+                                </div>
+                            ) : (
                             <SwipeableRow key={item.id} onDelete={() => handleDeleteLocalItem('mustBuy', item.id)}>
                                 <div className="group p-4 rounded-[1.25rem] bg-white border border-zen-rock flex items-start gap-4">
                                     <button className="size-5 mt-1 rounded-full border-2 border-zen-rock shrink-0 group-active:bg-cta group-active:border-cta"></button>
@@ -406,6 +449,7 @@ const ItineraryScreen: React.FC = () => {
                                     </div>
                                 </div>
                             </SwipeableRow>
+                            )
                         ))}
                     </div>
                 </div>

@@ -4,12 +4,13 @@ import { MotionLink } from '../components/MotionLink';
 import { SupabaseService } from '../services/SupabaseService';
 import { MustBuyItem, ChecklistStatus, ItineraryItem, Traveler } from '../types';
 import { useSession, useTrip } from '../context/AppState';
-import { currencyMeta, displayTripTitle, weatherDescFromCode, weatherPlace, resolveHomeTripDay } from '../lib/tripDisplay';
+import { currencyMeta, displayTripTitle, buildOpenMeteoUrl, parseOpenMeteo, weatherPlace, resolveHomeTripDay } from '../lib/tripDisplay';
 import { BottomSheet } from '../components/ui/bottom-sheet';
 import { CinemaHero } from '../components/CinemaHero';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import { scatterByUploader } from '../lib/scatterByUploader';
 import { DevilPhotoRail } from '../components/DevilPhotoRail';
+import { toast } from 'sonner';
 
 export const HomeScreen: React.FC = () => {
     const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -65,24 +66,18 @@ export const HomeScreen: React.FC = () => {
 
     // Weather Data State (Open-Meteo)
     const [weatherData, setWeatherData] = useState<{
-        current: { temp: number; desc: string; icon: string; wind?: number };
+        current: { temp: number; desc: string; icon: string; wind?: number } | null;
         hourly: { time: string; temp: number; rain: number; icon: string }[];
         daily: { date: string; label: string; max: number; min: number; rain: number; desc: string; icon: string }[];
     }>({
-        current: { temp: 30, desc: '晴時多雲', icon: 'wb_sunny' },
+        current: null,
         hourly: [],
         daily: []
     });
+    const [weatherStatus, setWeatherStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+    const [weatherNonce, setWeatherNonce] = useState(0);
 
-    const weatherCodeToIcon = (code: number) => {
-        if (code === 0) return 'wb_sunny';
-        if (code === 1 || code === 2 || code === 3) return 'partly_cloudy_day';
-        if (code === 45 || code === 48) return 'foggy';
-        if (code >= 51 && code <= 67) return 'rainy';
-        if (code >= 80 && code <= 82) return 'rainy';
-        if (code >= 95) return 'thunderstorm';
-        return 'cloud';
-    };
+    const dayKeys = days.map((d) => `${d.day_key}:${d.calendar_date || ''}`).join('|');
 
     useEffect(() => {
         if (!trip) return;
@@ -90,71 +85,37 @@ export const HomeScreen: React.FC = () => {
         setLiveRate(fallback);
         setForeignAmount('');
         setTwdAmount('');
+        const controller = new AbortController();
         const fetchData = async () => {
+            setWeatherStatus('loading');
             try {
-                fetch(`https://api.exchangerate-api.com/v4/latest/${trip.currency || 'THB'}`)
+                fetch(`https://api.exchangerate-api.com/v4/latest/${trip.currency || 'PHP'}`)
                     .then(res => res.json())
                     .then(json => {
                         if (json?.rates?.TWD) setLiveRate(json.rates.TWD);
                     })
                     .catch(err => console.error("Rate fetch failed", err));
 
-                const weatherRes = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${trip.weather_lat}&longitude=${trip.weather_lng}&hourly=temperature_2m,precipitation_probability,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&current_weather=true&timezone=${encodeURIComponent(trip.timezone || 'UTC')}&forecast_days=16`
-                );
+                const weatherRes = await fetch(buildOpenMeteoUrl(trip), { signal: controller.signal });
+                if (!weatherRes.ok) throw new Error(`weather http ${weatherRes.status}`);
                 const wJson = await weatherRes.json();
-
-                if (wJson && wJson.hourly) {
-                    const current = wJson.current_weather;
-                    const times = wJson.hourly.time.slice(6, 24);
-                    const temps = wJson.hourly.temperature_2m.slice(6, 24);
-                    const rains = wJson.hourly.precipitation_probability.slice(6, 24);
-                    const codes = wJson.hourly.weathercode.slice(6, 24);
-
-                    const hourlyData = times.map((t: string, i: number) => {
-                        const hourStr = t.split('T')[1].slice(0, 5);
-                        return {
-                            time: hourStr,
-                            temp: Math.round(temps[i]),
-                            rain: rains[i],
-                            icon: weatherCodeToIcon(codes[i])
-                        };
-                    });
-
-                    const start = trip.start_date;
-                    const end = trip.end_date;
-                    const dailyData = (wJson.daily?.time || []).map((date: string, i: number) => {
-                        const dayMeta = days.find((d) => d.calendar_date === date);
-                        const weekday = new Date(`${date}T00:00:00`).toLocaleDateString('zh-TW', { weekday: 'short', month: 'numeric', day: 'numeric' });
-                        return {
-                            date,
-                            label: dayMeta ? `${dayMeta.day_key} · ${weekday}` : weekday,
-                            max: Math.round(wJson.daily.temperature_2m_max[i]),
-                            min: Math.round(wJson.daily.temperature_2m_min[i]),
-                            rain: wJson.daily.precipitation_probability_max?.[i] ?? 0,
-                            desc: weatherDescFromCode(wJson.daily.weathercode[i]),
-                            icon: weatherCodeToIcon(wJson.daily.weathercode[i]),
-                        };
-                    }).filter((d: { date: string }) => (!start || d.date >= start) && (!end || d.date <= end));
-
-                    setWeatherData({
-                        current: {
-                            temp: Math.round(current.temperature),
-                            desc: weatherDescFromCode(current.weathercode),
-                            icon: weatherCodeToIcon(current.weathercode),
-                            wind: Math.round(current.windspeed)
-                        },
-                        hourly: hourlyData,
-                        daily: dailyData
-                    });
-                }
-
+                const parsed = parseOpenMeteo(wJson, {
+                    startDate: trip.start_date,
+                    endDate: trip.end_date,
+                    days,
+                });
+                if (!parsed) throw new Error('weather payload empty');
+                setWeatherData(parsed);
+                setWeatherStatus('ready');
             } catch (error) {
+                if ((error as { name?: string })?.name === 'AbortError') return;
                 console.error("Failed to fetch data", error);
+                setWeatherStatus('error');
             }
         };
         fetchData();
-    }, [trip?.id, trip?.currency, trip?.weather_lat, trip?.weather_lng, trip?.timezone, trip?.exchange_rate, trip?.start_date, trip?.end_date, days]);
+        return () => controller.abort();
+    }, [trip?.id, trip?.currency, trip?.weather_lat, trip?.weather_lng, trip?.timezone, trip?.exchange_rate, trip?.start_date, trip?.end_date, dayKeys, weatherNonce]);
 
     const handleForeignChange = (val: string) => {
         setForeignAmount(val);
@@ -323,6 +284,7 @@ export const HomeScreen: React.FC = () => {
 
     useEffect(() => {
         if (trip?.id && myUserId) loadMustBuy();
+        else setIsMustBuyLoading(false);
         window.addEventListener('storage', loadMustBuy);
         return () => window.removeEventListener('storage', loadMustBuy);
     }, [trip?.id, myUserId]);
@@ -396,18 +358,18 @@ export const HomeScreen: React.FC = () => {
     const isUserInteraction = useRef(false);
     const programmaticScroll = useRef(false);
 
-    // Sync 'is_current' on load
+    // Sync 'is_current' on load — only when the day's item ids change, not on local meeting-point edits
+    const itineraryIds = wheelData.map((i: any) => i.id).join(',');
     useEffect(() => {
         const syncInitial = async () => {
-            if (wheelData.length === 0) return;
+            if (!trip?.id || !itineraryIds) return;
             try {
-                const current = await SupabaseService.getCurrentItinerary(trip!.id);
+                const current = await SupabaseService.getCurrentItinerary(trip.id);
                 if (current) {
                     const idx = wheelData.findIndex((i: any) => i.id === current.id);
-                    if (idx !== -1 && idx !== activeIndex) {
+                    if (idx !== -1) {
                         programmaticScroll.current = true;
-                        setActiveIndex(idx);
-                        // Physically scroll to the item (Instant snap)
+                        setActiveIndex((prev) => (prev === idx ? prev : idx));
                         if (scrollRef.current) {
                             scrollRef.current.scrollTo({ top: idx * 72, behavior: 'instant' });
                         }
@@ -416,7 +378,9 @@ export const HomeScreen: React.FC = () => {
             } catch (e) { console.error(e); }
         };
         syncInitial();
-    }, [wheelData, currentDayKey]);
+        // wheelData is read for findIndex on the same render as itineraryIds
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [itineraryIds, currentDayKey, trip?.id]);
 
     // Scroll Handler for the Wheel
     const handleScroll = () => {
@@ -488,25 +452,31 @@ export const HomeScreen: React.FC = () => {
     const handleUpdateMeetingPoint = async () => {
         if (isGuest) return;
         if (!activeItem || !activeItem.id) return;
+        const location = meetingPointForm.location.trim();
+        const note = meetingPointForm.note.trim();
+        const targetId = activeItem.id;
+        const previous = wheelData.find((item: any) => item.id === targetId);
 
-        // Optimistic Update
-        const updatedWheelData = [...wheelData];
-        if (updatedWheelData[activeIndex]) {
-            updatedWheelData[activeIndex] = {
-                ...updatedWheelData[activeIndex],
-                location: meetingPointForm.location,
-                note: meetingPointForm.note
-            };
-            setWheelData(updatedWheelData);
-        }
-
+        setWheelData((prev) => prev.map((item: any) => (
+            item.id === targetId ? { ...item, location, note } : item
+        )));
         setIsMeetingModalOpen(false);
 
-        // Sync to DB
-        await SupabaseService.updateItinerary(activeItem.id, {
-            location: meetingPointForm.location,
-            description: meetingPointForm.note
-        });
+        try {
+            await SupabaseService.updateItinerary(targetId, {
+                location,
+                description: note
+            });
+            toast.success('集合點已同步給全團');
+        } catch (err) {
+            console.error(err);
+            if (previous) {
+                setWheelData((prev) => prev.map((item: any) => (
+                    item.id === targetId ? previous : item
+                )));
+            }
+            toast.error('集合點沒有存進資料庫，請再試一次');
+        }
     };
 
     return (
@@ -529,6 +499,7 @@ export const HomeScreen: React.FC = () => {
                     <h3 className="font-serif text-xl mt-1 leading-snug">{activeItem.title || '暫無行程'}</h3>
                     <p className="text-xs text-zen-text-light mt-1">{activeItem.time}{activeItem.note ? ` · ${activeItem.note}` : ''}</p>
                     <p className="text-xs mt-2 text-zen-text">集合：{activeItem.location || '未設定'}</p>
+                    <p className="text-[10px] text-zen-text-light">全團可見{isGuest ? '' : ' · 正式團員可改'}</p>
                     {!isGuest && (
                     <button type="button" onClick={() => setIsMeetingModalOpen(true)} className="text-[11px] text-cta mt-1 min-h-[32px]">設定集合點</button>
                     )}
@@ -647,8 +618,10 @@ export const HomeScreen: React.FC = () => {
                     <div className="flex items-end justify-between mt-1">
                         <div>
                             <p className="text-sm text-zen-text-light">{placeLabel}現在</p>
-                            <p className="font-serif text-5xl leading-none mt-1">{weatherData.current?.temp ?? '--'}°</p>
-                            <p className="text-xs text-zen-text-light mt-2">{weatherData.current?.desc || '載入中'}</p>
+                            <p className="font-serif text-5xl leading-none mt-1">{weatherData.current ? `${weatherData.current.temp}°` : '--'}</p>
+                            <p className="text-xs text-zen-text-light mt-2">
+                                {weatherStatus === 'error' ? '暫時無法取得天氣' : (weatherData.current?.desc || '載入中')}
+                            </p>
                         </div>
                         <div className="text-right">
                             <span className="material-symbols-outlined text-zen-moss text-[40px]">{weatherData.current?.icon || 'cloud'}</span>
@@ -667,14 +640,25 @@ export const HomeScreen: React.FC = () => {
                                 </div>
                             ))
                         ) : (
-                            <p className="w-full text-center text-xs text-zen-text-light py-2">正在獲取{placeLabel}天氣…</p>
+                            <p className="w-full text-center text-xs text-zen-text-light py-2">
+                                {weatherStatus === 'error' ? '即時預報載入失敗' : `正在獲取${placeLabel}天氣…`}
+                            </p>
                         )}
                     </div>
+                    {weatherStatus === 'error' && (
+                        <button
+                            type="button"
+                            className="mt-3 w-full text-xs text-cta min-h-[36px]"
+                            onClick={() => setWeatherNonce((n) => n + 1)}
+                        >
+                            重新取得天氣
+                        </button>
+                    )}
                 </div>
 
                 <div className="glass-panel p-4 rounded-[1.25rem]">
                     <p className="text-[10px] tracking-widest text-cta uppercase">天氣預報</p>
-                    <p className="text-sm mt-1 mb-3">這三天</p>
+                    <p className="text-sm mt-1 mb-3">行程這三天</p>
                     {weatherData.daily.length > 0 ? (
                         <div className="flex flex-col gap-2">
                             {weatherData.daily.map((day) => (
@@ -697,7 +681,9 @@ export const HomeScreen: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-xs text-zen-text-light">尚無法取得這三日預報</p>
+                        <p className="text-xs text-zen-text-light">
+                            {weatherStatus === 'error' ? '預報載入失敗，請稍後重試' : weatherStatus === 'loading' ? '正在取得行程預報…' : '尚無法取得這三日預報'}
+                        </p>
                     )}
                 </div>
 
