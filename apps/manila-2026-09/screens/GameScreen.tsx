@@ -171,7 +171,6 @@ export const GameScreen: React.FC = () => {
 
     const saveWish = async () => {
         if (isGuest) {
-            setMsg('訪客唯讀');
             return;
         }
         if (!claimId || !wishDraft.trim()) return;
@@ -189,7 +188,6 @@ export const GameScreen: React.FC = () => {
 
     const onPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isGuest) {
-            setMsg('訪客唯讀，不能上傳');
             e.target.value = '';
             return;
         }
@@ -214,7 +212,6 @@ export const GameScreen: React.FC = () => {
 
     const pickGuess = async (role: 'angel' | 'devil', id: string) => {
         if (isGuest) {
-            setMsg('訪客唯讀，不能猜人');
             return;
         }
         const nextAngel = role === 'angel' ? id : guessAngel || null;
@@ -281,7 +278,7 @@ export const GameScreen: React.FC = () => {
                     <p className="mt-3 text-sm">
                         <span className="text-cta font-bold">天使任務：</span>
                         {isGuest
-                            ? '這是訪客體驗：天使與惡魔都是你自己的訪客頭像。看願望牆就好，不用送禮。'
+                            ? '看願望牆，了解大家想要什麼。'
                             : `你抽到 ${draw.angel_name}。看願望牆，不經意提供對方想要或想吃的東西，且不能被發現你是小天使。`}
                     </p>
                 )}
@@ -289,7 +286,7 @@ export const GameScreen: React.FC = () => {
                     <p className="mt-3 text-sm">
                         <span className="text-cta font-bold">惡魔任務：</span>
                         {isGuest
-                            ? '這是訪客體驗：你可以看醜照牆，但不能上傳或參加正式配對。'
+                            ? '你可以瀏覽醜照牆。'
                             : `你抽到 ${draw.devil_name}。在不被發現的情況下偷拍醜照並上傳；這面牆只放 ${draw.devil_name} 的照片。`}
                     </p>
                 )}
@@ -299,7 +296,7 @@ export const GameScreen: React.FC = () => {
             <section className="mt-8">
                 <h2 className="font-serif text-2xl">天使 · 願望牆</h2>
                 <p className="text-xs text-zen-text-light mt-1">
-                    {isGuest ? '訪客可看牆，不能填願望或猜人。' : '點別人的頭像猜你的天使（只自己看得到）。每人填一次願望，填完不能改。'}
+                    {isGuest ? '瀏覽大家的願望。' : '點別人的頭像猜你的天使（僅自己可見）。每人填一次願望，填完不能改。'}
                 </p>
                 <div className="mt-5 grid grid-cols-2 gap-x-3 gap-y-8">
                     {pool.map((person) => {
@@ -401,7 +398,7 @@ export const GameScreen: React.FC = () => {
             {mode === 'devil' && !isGuest && (
             <section className="mt-8">
                 <h2 className="font-serif text-2xl">猜我的惡魔</h2>
-                <p className="text-xs text-zen-text-light mt-1">點頭像標記，只自己看得到。點了就存好。</p>
+                <p className="text-xs text-zen-text-light mt-1">點頭像標記，僅自己可見。</p>
                 <GameGuessPicker
                     role="devil"
                     selectedId={guessDevil}
@@ -416,7 +413,6 @@ export const GameScreen: React.FC = () => {
                 <h2 className="font-serif text-2xl mt-1">天使與惡魔</h2>
                 {revealed ? (
                     <>
-                        <p className="text-xs text-zen-text-light mt-1">最後一天中午 12:00，全團配對一次打開。</p>
                         <GameRevealBoard
                             rows={board}
                             myTravelerId={claimId}

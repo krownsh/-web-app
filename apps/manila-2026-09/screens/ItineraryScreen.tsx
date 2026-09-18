@@ -242,10 +242,10 @@ const ItineraryScreen: React.FC = () => {
             setLinks((prev) => [...prev, ...rows]);
             setNewLink({ title: '', url: '', source: 'Web' });
             setShowLinkModal(false);
-            toast.success('已分享給全團');
+            toast.success('已加入收藏');
         } catch (err) {
             console.error(err);
-            toast.error('連結沒有存進資料庫');
+            toast.error('連結沒有儲存成功');
         }
     };
 
@@ -267,10 +267,10 @@ const ItineraryScreen: React.FC = () => {
             setMustBuys((prev) => [...prev, ...(rows || [])]);
             setNewItem({ name: '', price: '', desc: '', visibility: 'public' });
             setShowItemModal(false);
-            toast.success(newItem.visibility === 'public' ? '已推薦給全團' : '已加入你的清單');
+            toast.success(newItem.visibility === 'public' ? '已推薦給大家' : '已加入你的清單');
         } catch (err) {
             console.error(err);
-            toast.error('必買沒有存進資料庫');
+            toast.error('項目沒有儲存成功');
         }
     };
 
@@ -281,7 +281,7 @@ const ItineraryScreen: React.FC = () => {
         SupabaseService.syncChecklistStatus(trip.id, id, myUserId, next).catch((err) => {
             console.error(err);
             setCheckedItems((prev) => ({ ...prev, [id]: !next }));
-            toast.error('勾選沒有存進去');
+            toast.error('勾選沒有儲存成功');
         });
     };
 
@@ -390,10 +390,9 @@ const ItineraryScreen: React.FC = () => {
                 </div>
 
                 <div className="px-6 mt-8 mb-10">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-4">
                         <h2 className="font-serif text-xl text-zen-text">收藏文章</h2>
                     </div>
-                    <p className="text-[11px] text-zen-text-light mb-4">全團都看得到。正式團員可新增，誰加的誰可以刪。</p>
 
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                         {!isGuest && (
@@ -442,7 +441,7 @@ const ItineraryScreen: React.FC = () => {
                 </div>
 
                 <div className="px-6 mb-10">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-4">
                         <h2 className="font-serif text-xl text-zen-text">必買清單</h2>
                         {!isGuest && (
                         <button
@@ -455,7 +454,6 @@ const ItineraryScreen: React.FC = () => {
                         </button>
                         )}
                     </div>
-                    <p className="text-[11px] text-zen-text-light mb-4">可選「推薦給大家」或只給自己看。點一下即可劃掉，勾選狀態每人一份。</p>
 
                     <div className="flex flex-col gap-3">
                         {spotBuys.length === 0 && (
@@ -608,7 +606,6 @@ const ItineraryScreen: React.FC = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-zen-text-light uppercase tracking-wide">公開程度</label>
                                         <div className="flex gap-2 mt-1">
                                             {(['public', 'private'] as const).map((v) => (
                                                 <button
@@ -625,9 +622,6 @@ const ItineraryScreen: React.FC = () => {
                                                 </button>
                                             ))}
                                         </div>
-                                        <p className="text-[10px] text-zen-text-light mt-2 px-1">
-                                            {newItem.visibility === 'public' ? '＊全團都看得到這項推薦。' : '＊只有你看得到，換手機也在。'}
-                                        </p>
                                     </div>
                                     <button
                                         type="button"

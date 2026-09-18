@@ -450,7 +450,7 @@ export const HomeScreen: React.FC = () => {
                 location,
                 description: note
             });
-            toast.success('集合點已同步給全團');
+            toast.success('集合點已更新');
         } catch (err) {
             console.error(err);
             if (previous) {
@@ -458,7 +458,7 @@ export const HomeScreen: React.FC = () => {
                     item.id === targetId ? previous : item
                 )));
             }
-            toast.error('集合點沒有存進資料庫，請再試一次');
+            toast.error('集合點沒有儲存成功，請再試一次');
         }
     };
 
@@ -482,7 +482,6 @@ export const HomeScreen: React.FC = () => {
                     <h3 className="font-serif text-xl mt-1 leading-snug">{activeItem.title || '暫無行程'}</h3>
                     <p className="text-xs text-zen-text-light mt-1">{activeItem.time}{activeItem.note ? ` · ${activeItem.note}` : ''}</p>
                     <p className="text-xs mt-2 text-zen-text">集合：{activeItem.location || '未設定'}</p>
-                    <p className="text-[10px] text-zen-text-light">全團可見{isGuest ? '' : ' · 正式團員可改'}</p>
                     {!isGuest && (
                     <button type="button" onClick={() => setIsMeetingModalOpen(true)} className="text-[11px] text-cta mt-1 min-h-[32px]">設定集合點</button>
                     )}
@@ -748,7 +747,7 @@ export const HomeScreen: React.FC = () => {
                             {isMustBuyLoading ? (
                                 <div className="flex flex-col items-center justify-center py-10">
                                     <div className="size-8 border-3 border-zen-moss/20 border-t-zen-moss rounded-full animate-spin mb-3"></div>
-                                    <p className="text-xs font-medium text-zen-text-light">同步清單中...</p>
+                                    <p className="text-xs font-medium text-zen-text-light">載入中…</p>
                                 </div>
                             ) : mustBuyItems.length > 0 ? (
                                 mustBuyItems.map((item, i) => {
@@ -804,8 +803,8 @@ export const HomeScreen: React.FC = () => {
                                 })
                             ) : (
                                 <div className="p-6 text-center text-zen-text-light bg-zen-mist rounded-2xl border border-dashed border-zen-rock">
-                                    <p className="text-sm font-medium">尚未添加必買清單</p>
-                                    <MotionLink to="/itinerary" className="text-xs text-cta font-bold mt-2 inline-block">前往攻略添加</MotionLink>
+                                    <p className="text-sm font-medium">還沒有必買項目</p>
+                                    <MotionLink to="/itinerary" className="text-xs text-cta font-bold mt-2 inline-block">前往攻略新增</MotionLink>
                                 </div>
                             )}
                         </div>
@@ -961,7 +960,6 @@ export const HomeScreen: React.FC = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-zen-text-light uppercase tracking-wide">公開程度</label>
                                 <div className="flex gap-2 mt-1">
                                     {(['public', 'private'] as const).map(v => (
                                         <button
@@ -977,9 +975,6 @@ export const HomeScreen: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-[10px] text-zen-text-light mt-2 px-1">
-                                    {newMustBuy.visibility === 'public' ? '＊這項推薦將會同步給所有行程成員。' : '＊只有你看得到，換手機也在。'}
-                                </p>
                             </div>
                         <div className="flex gap-3 mt-8">
                             <button
@@ -997,7 +992,7 @@ export const HomeScreen: React.FC = () => {
                         </div>
             </BottomSheet>
 
-            <BottomSheet open={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} title="設定集合資訊" description={activeItem ? `針對: ${activeItem.title}` : undefined}>
+            <BottomSheet open={isMeetingModalOpen} onClose={() => setIsMeetingModalOpen(false)} title="設定集合資訊" description={activeItem ? `針對「${activeItem.title}」` : undefined}>
                         <div className="flex flex-col gap-4">
                             <div>
                                 <label className="text-xs font-bold text-zen-text-light uppercase tracking-wide">集合地點</label>

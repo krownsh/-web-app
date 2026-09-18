@@ -5,7 +5,7 @@ import { displayTripTitle } from '../lib/tripDisplay';
 
 function authMessage(message: string) {
     if (/invalid login credentials/i.test(message)) return '信箱或密碼不對';
-    if (/user already registered/i.test(message)) return '這個信箱已有登入帳號。若是第一次用本 App，請再按一次註冊以加入行程名單。';
+    if (/user already registered/i.test(message)) return '這個信箱已有帳號。請改用登入。';
     if (/unable to validate email/i.test(message) || /invalid email/i.test(message)) {
         return '請輸入有效的信箱';
     }
@@ -103,7 +103,7 @@ export default function Gate({ children }: { children: React.ReactNode }) {
                     .maybeSingle();
                 if (!profile) {
                     await supabase.auth.signOut();
-                    setError('這個帳號還沒在本行程 App 註冊。請改按「註冊」加入，即使信箱在別的系統用過也一樣。');
+                    setError('這個帳號還沒加入這次行程。請改按「註冊」。');
                 }
             } else {
                 const { data: signedUp, error: signUpErr } = await supabase.auth.signUp(creds);
@@ -121,7 +121,7 @@ export default function Gate({ children }: { children: React.ReactNode }) {
                     return;
                 }
                 if (!signedUp.session) {
-                    setHint('帳號已建立。若專案有開信箱驗證，請先點確認信再登入。');
+                    setHint('帳號已建立。請先到信箱完成確認，再開啟登入。');
                     setMode('login');
                     return;
                 }
@@ -160,9 +160,6 @@ export default function Gate({ children }: { children: React.ReactNode }) {
                     <h2 className="mt-1 text-center text-base font-bold text-zen-text">
                         {mode === 'login' ? '用信箱登入' : '註冊加入'}
                     </h2>
-                    {/* <p className="mt-1 mb-3 text-center text-[11px] leading-snug text-zen-text-light">
-                        {mode === 'login' ? '登入後再輸入團碼' : '只加入本行程 App'}
-                    </p> */}
                     <label className="sr-only" htmlFor="gate-email">信箱</label>
                     <input
                         id="gate-email"

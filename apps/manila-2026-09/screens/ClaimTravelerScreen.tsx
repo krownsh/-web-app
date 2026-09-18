@@ -74,7 +74,7 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
             <p className="text-[10px] tracking-[0.3em] text-cta uppercase">Secret mission</p>
             <h1 className="font-serif text-3xl mt-1 text-white">你是誰？</h1>
             <p className="text-sm text-white/70 mt-2">
-                點頭像鎖定身分，選完不能改。已 check in 的人不能再選。後面幾位訪客不佔九人名單，全站唯讀；標「可共用」的可多人同時使用。
+                點頭像確認你是誰。選完後無法更改。
             </p>
             {error && <p className="mt-3 text-sm text-cta">{error}</p>}
             <div className="mt-6 grid grid-cols-2 gap-3">
@@ -103,7 +103,7 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
                             {face.claimed && (
                                 <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
                                     <span className="-rotate-[22deg] rounded-sm border-[3px] border-cta px-1.5 py-0.5 font-black text-[11px] tracking-widest text-cta shadow-[2px_2px_0_rgba(234,88,12,0.25)] bg-white/40">
-                                        CHECK IN
+                                        已確認
                                     </span>
                                 </span>
                             )}
