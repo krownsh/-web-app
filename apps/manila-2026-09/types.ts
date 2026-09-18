@@ -104,9 +104,23 @@ export interface MustBuyItem {
   item_name: string;
   price: string | number;
   location_ref?: string;
+  itinerary_item_id?: string | null;
   visibility: 'public' | 'private';
   owner_id: string;
   image_url?: string;
+  note?: string | null;
+  created_at?: string;
+}
+
+export interface GuideLink {
+  id: string;
+  trip_id: string;
+  itinerary_item_id?: string | null;
+  location_ref?: string | null;
+  title: string;
+  url: string;
+  source?: string | null;
+  owner_id: string;
   created_at?: string;
 }
 

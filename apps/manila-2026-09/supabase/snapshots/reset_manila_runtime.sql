@@ -27,6 +27,7 @@ BEGIN
   DELETE FROM public.zentravel_budget_records WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_budgets WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_checklist_statuses WHERE trip_id = v_trip;
+  DELETE FROM public.zentravel_guide_links WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_must_buys WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_itinerary_items
   WHERE trip_id = v_trip AND origin IS DISTINCT FROM 'seed';

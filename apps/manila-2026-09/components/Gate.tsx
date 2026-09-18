@@ -74,7 +74,7 @@ function LoginStage({ children }: { children: React.ReactNode }) {
 
 export default function Gate({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading, enrolled, enrollThisApp } = useSession();
-    const { trip, loading: tripLoading } = useTrip();
+    const { trip, loading: tripLoading, refresh } = useTrip();
     const [mode, setMode] = useState<'login' | 'register'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -210,11 +210,22 @@ export default function Gate({ children }: { children: React.ReactNode }) {
         return (
             <div className="h-full flex items-center justify-center bg-zen-dark text-zen-mist page-enter">
                 <div className="flex flex-col items-center gap-3 px-6 text-center">
-                    <div className="size-8 border-2 border-white/20 border-t-cta rounded-full animate-spin" />
-                    <p className="text-sm">正在加入行程…</p>
+                    {tripLoading ? (
+                        <div className="size-8 border-2 border-white/20 border-t-cta rounded-full animate-spin" />
+                    ) : (
+                        <span className="material-symbols-outlined text-3xl text-cta">cloud_off</span>
+                    )}
+                    <p className="text-sm">{tripLoading ? '正在加入行程…' : '行程載入失敗'}</p>
                     <button
                         type="button"
-                        className="mt-2 text-[11px] text-zen-mist underline min-h-[36px] cursor-pointer"
+                        className="mt-1 rounded-xl bg-cta px-4 py-2 text-sm text-zen-dark min-h-[40px] cursor-pointer"
+                        onClick={() => void refresh()}
+                    >
+                        再試一次
+                    </button>
+                    <button
+                        type="button"
+                        className="text-[11px] text-zen-mist underline min-h-[36px] cursor-pointer"
                         onClick={() => supabase.auth.signOut()}
                     >
                         登出

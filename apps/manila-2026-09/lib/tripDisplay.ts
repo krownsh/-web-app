@@ -27,11 +27,36 @@ export function currencyMeta(code?: string) {
     return { code: c || 'TWD', symbol: c || 'NT$', name: c || '台幣' };
 }
 
+export const MANILA_WEATHER_COORDS = { lat: 14.5515, lng: 121.0173 };
+
+export function ymd(value?: string | null) {
+    return (value || '').slice(0, 10);
+}
+
 export function weatherPlace(trip?: Trip | null) {
     const tz = trip?.timezone || '';
     if (tz.includes('Manila')) return '馬尼拉';
     if (tz.includes('Bangkok')) return '曼谷';
     return trip?.theme?.shortName || trip?.title || '當地';
+}
+
+export function weatherCoords(trip?: Trip | null) {
+    const lat = Number(trip?.weather_lat);
+    const lng = Number(trip?.weather_lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
+        return { lat, lng };
+    }
+    return MANILA_WEATHER_COORDS;
+}
+
+export function weatherCodeToIcon(code: number) {
+    if (code === 0) return 'wb_sunny';
+    if (code === 1 || code === 2 || code === 3) return 'partly_cloudy_day';
+    if (code === 45 || code === 48) return 'foggy';
+    if (code >= 51 && code <= 67) return 'rainy';
+    if (code >= 80 && code <= 82) return 'rainy';
+    if (code >= 95) return 'thunderstorm';
+    return 'cloud';
 }
 
 export function weatherDescFromCode(code: number) {
@@ -42,6 +67,98 @@ export function weatherDescFromCode(code: number) {
     if (code >= 80 && code <= 82) return '陣雨';
     if (code >= 95) return '雷雨';
     return '實時天氣';
+}
+
+export function buildOpenMeteoUrl(trip?: Trip | null) {
+    const { lat, lng } = weatherCoords(trip);
+    const tz = encodeURIComponent(trip?.timezone || 'Asia/Manila');
+    return `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,precipitation_probability,weather_code,weathercode&daily=weather_code,weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&current=temperature_2m,weather_code,wind_speed_10m&current_weather=true&timezone=${tz}&forecast_days=16`;
+}
+
+export type ParsedWeather = {
+    current: { temp: number; desc: string; icon: string; wind?: number };
+    hourly: { time: string; temp: number; rain: number; icon: string }[];
+    daily: { date: string; label: string; max: number; min: number; rain: number; desc: string; icon: string }[];
+};
+
+function weatherCodeFrom(source: Record<string, unknown> | undefined, index?: number) {
+    if (!source) return 0;
+    const pick = (key: string) => {
+        const value = source[key];
+        if (Array.isArray(value) && index != null) return Number(value[index]);
+        if (typeof value === 'number') return value;
+        return NaN;
+    };
+    const code = pick('weathercode');
+    if (Number.isFinite(code)) return code;
+    const next = pick('weather_code');
+    return Number.isFinite(next) ? next : 0;
+}
+
+export function parseOpenMeteo(
+    wJson: any,
+    opts: {
+        startDate?: string;
+        endDate?: string;
+        days?: { day_key: string; calendar_date?: string }[];
+    } = {}
+): ParsedWeather | null {
+    const hourly = wJson?.hourly;
+    const currentWeather = wJson?.current_weather || wJson?.current;
+    if (!hourly?.time || !currentWeather) return null;
+
+    const currentTemp = Number(currentWeather.temperature ?? currentWeather.temperature_2m);
+    const currentCode = weatherCodeFrom(currentWeather);
+    const currentWind = Number(currentWeather.windspeed ?? currentWeather.wind_speed_10m);
+    if (!Number.isFinite(currentTemp)) return null;
+
+    const currentTime = String(currentWeather.time || '');
+    let startIdx = hourly.time.findIndex((t: string) => t >= currentTime);
+    if (startIdx < 0) startIdx = 0;
+    const endIdx = Math.min(startIdx + 12, hourly.time.length);
+
+    const hourlyData = hourly.time.slice(startIdx, endIdx).map((t: string, i: number) => {
+        const idx = startIdx + i;
+        return {
+            time: String(t).split('T')[1]?.slice(0, 5) || t,
+            temp: Math.round(Number(hourly.temperature_2m?.[idx]) || 0),
+            rain: Number(hourly.precipitation_probability?.[idx]) || 0,
+            icon: weatherCodeToIcon(weatherCodeFrom(hourly, idx)),
+        };
+    });
+
+    const start = ymd(opts.startDate);
+    const end = ymd(opts.endDate);
+    const dailyTimes: string[] = wJson.daily?.time || [];
+    const dailyData = dailyTimes.map((date: string, i: number) => {
+        const dayMeta = opts.days?.find((d) => ymd(d.calendar_date) === ymd(date));
+        const weekday = new Date(`${ymd(date)}T00:00:00`).toLocaleDateString('zh-TW', {
+            weekday: 'short',
+            month: 'numeric',
+            day: 'numeric',
+        });
+        const code = weatherCodeFrom(wJson.daily, i);
+        return {
+            date: ymd(date),
+            label: dayMeta ? `${dayMeta.day_key} · ${weekday}` : weekday,
+            max: Math.round(Number(wJson.daily.temperature_2m_max?.[i]) || 0),
+            min: Math.round(Number(wJson.daily.temperature_2m_min?.[i]) || 0),
+            rain: wJson.daily.precipitation_probability_max?.[i] ?? 0,
+            desc: weatherDescFromCode(code),
+            icon: weatherCodeToIcon(code),
+        };
+    }).filter((d: { date: string }) => (!start || d.date >= start) && (!end || d.date <= end));
+
+    return {
+        current: {
+            temp: Math.round(currentTemp),
+            desc: weatherDescFromCode(currentCode),
+            icon: weatherCodeToIcon(currentCode),
+            wind: Number.isFinite(currentWind) ? Math.round(currentWind) : undefined,
+        },
+        hourly: hourlyData,
+        daily: dailyData,
+    };
 }
 
 export function daysUntil(startDate?: string) {

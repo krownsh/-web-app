@@ -20,7 +20,17 @@ const AppContent: React.FC = () => {
 
   if (!trip?.id || !claimReady) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-zen-text-light">載入中…</div>
+      <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-sm text-zen-text-light">
+        <div className="size-8 border-2 border-zen-moss/20 border-t-zen-moss rounded-full animate-spin" />
+        <p>載入中…</p>
+        <button
+          type="button"
+          className="text-xs text-cta underline min-h-[36px] cursor-pointer"
+          onClick={() => void refresh()}
+        >
+          等太久了？點這裡重試
+        </button>
+      </div>
     );
   }
 

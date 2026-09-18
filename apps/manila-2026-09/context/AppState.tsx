@@ -124,6 +124,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const bootstrapped = useRef(false);
 
+    const applyClaim = useCallback((claim: GameClaim | null, tripId?: string) => {
+        if (claim?.kind === 'guest' && tripId && userId && hasGuestLottery(tripId, userId)) {
+            setGameClaim({ ...claim, lottery_played_at: claim.lottery_played_at || new Date().toISOString() });
+        } else {
+            setGameClaim(claim);
+        }
+    }, [userId]);
+
     const refreshClaim = useCallback(async () => {
         if (!userId || !enrolled) {
             setGameClaim(null);
@@ -131,23 +139,19 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
         if (!trip?.id) {
-            setGameClaim(null);
-            setClaimReady(false);
+            // 行程還在載入時不要把 claimReady 打成 false，否則首頁會卡在「載入中」
             return;
         }
         try {
             const claim = await SupabaseService.getMyGameClaim(trip.id);
-            if (claim?.kind === 'guest' && hasGuestLottery(trip.id, userId)) {
-                setGameClaim({ ...claim, lottery_played_at: claim.lottery_played_at || new Date().toISOString() });
-            } else {
-                setGameClaim(claim);
-            }
-        } catch {
+            applyClaim(claim, trip.id);
+        } catch (err) {
+            console.error(err);
             setGameClaim(null);
         } finally {
             setClaimReady(true);
         }
-    }, [userId, enrolled, trip?.id]);
+    }, [userId, enrolled, trip?.id, applyClaim]);
 
     const refresh = useCallback(async () => {
         if (!userId || !enrolled) {
@@ -176,16 +180,24 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const active = list[0] || null;
             setTrip(active);
             if (active) {
-                const tripDays = await SupabaseService.getTripDays(active.id);
+                const [tripDays, memberRes, claim] = await Promise.all([
+                    SupabaseService.getTripDays(active.id),
+                    supabase
+                        .from('zentravel_trip_members')
+                        .select('role')
+                        .eq('trip_id', active.id)
+                        .eq('user_id', userId)
+                        .maybeSingle(),
+                    SupabaseService.getMyGameClaim(active.id).catch((err) => {
+                        console.error(err);
+                        return null;
+                    }),
+                ]);
                 setDays(tripDays);
-                const { data: member } = await supabase
-                    .from('zentravel_trip_members')
-                    .select('role')
-                    .eq('trip_id', active.id)
-                    .eq('user_id', userId)
-                    .maybeSingle();
-                const nextRole = (member?.role as 'owner' | 'member' | 'guest') || 'member';
+                const nextRole = (memberRes.data?.role as 'owner' | 'member' | 'guest') || 'member';
                 setRole(nextRole);
+                applyClaim(claim, active.id);
+                setClaimReady(true);
             } else {
                 setDays([]);
                 setRole(null);
@@ -196,7 +208,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
             setLoading(false);
         }
-    }, [userId, enrolled]);
+    }, [userId, enrolled, applyClaim]);
 
     useEffect(() => {
         refresh().catch((err) => {
