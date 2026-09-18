@@ -11,6 +11,7 @@ import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import { scatterByUploader } from '../lib/scatterByUploader';
 import { DevilPhotoRail } from '../components/DevilPhotoRail';
 import { toast } from 'sonner';
+import { formatMustBuyPrice, migrateLocalGuideToCloud } from '../lib/guideCloud';
 
 export const HomeScreen: React.FC = () => {
     const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -245,30 +246,12 @@ export const HomeScreen: React.FC = () => {
     const loadMustBuy = async () => {
         setIsMustBuyLoading(true);
         try {
-            // 1. Load from Guide (Local for now as it's provided by App)
-            const guideData = localStorage.getItem('zen_guide_data_v1');
-            const dataToParse = guideData || '{}';
-            const parsed = JSON.parse(dataToParse);
-            let allItems: any[] = [];
-            Object.values(parsed).forEach((loc: any) => {
-                if (loc.mustBuy && Array.isArray(loc.mustBuy)) {
-                    const itemsWithLoc = loc.mustBuy.map((item: any) => ({
-                        ...item,
-                        item_name: item.name,
-                        location_ref: loc.name || '未知地點',
-                        visibility: 'public'
-                    }));
-                    allItems = [...allItems, ...itemsWithLoc];
-                }
-            });
-
-            // 2. Load Custom/Private items from Supabase
+            if (!isGuest && myUserId) {
+                await migrateLocalGuideToCloud(trip!.id, myUserId);
+            }
             const customItems = await SupabaseService.getMustBuys(trip!.id, myUserId);
-            allItems = [...allItems, ...customItems];
+            setMustBuyItems(customItems);
 
-            setMustBuyItems(allItems);
-
-            // 3. Load Checklist Status from Supabase
             const statuses = await SupabaseService.getChecklistStatuses(trip!.id, myUserId);
             const statusMap: Record<string, boolean> = {};
             statuses.forEach(s => {
@@ -287,7 +270,7 @@ export const HomeScreen: React.FC = () => {
         else setIsMustBuyLoading(false);
         window.addEventListener('storage', loadMustBuy);
         return () => window.removeEventListener('storage', loadMustBuy);
-    }, [trip?.id, myUserId]);
+    }, [trip?.id, myUserId, isGuest]);
 
     const handleAddMustBuy = async () => {
         if (isGuest) return;
@@ -787,7 +770,7 @@ export const HomeScreen: React.FC = () => {
                                                     </p>
                                                     <div className="flex items-center gap-2 mt-0.5">
                                                         <span className="text-[10px] font-bold text-zen-moss bg-zen-moss/10 px-1.5 py-0.5 rounded-md">
-                                                            {item.price}
+                                                            {formatMustBuyPrice(item.price, money.symbol)}
                                                         </span>
                                                         {item.location_ref && (
                                                             <span className="text-[10px] text-zen-text-light truncate max-w-[120px]">
@@ -995,7 +978,7 @@ export const HomeScreen: React.FC = () => {
                                     ))}
                                 </div>
                                 <p className="text-[10px] text-zen-text-light mt-2 px-1">
-                                    {newMustBuy.visibility === 'public' ? '＊這項推薦將會同步給所有行程成員。' : '＊這項紀錄只有在您的裝置上看得到。'}
+                                    {newMustBuy.visibility === 'public' ? '＊這項推薦將會同步給所有行程成員。' : '＊只有你看得到，換手機也在。'}
                                 </p>
                             </div>
                         <div className="flex gap-3 mt-8">

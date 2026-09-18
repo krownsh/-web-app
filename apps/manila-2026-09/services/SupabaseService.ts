@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Budget, ChecklistStatus, ExpenseItem, ItineraryItem, MustBuyItem, Traveler, Trip, TripDay } from '../types';
+import { Budget, ChecklistStatus, ExpenseItem, GuideLink, ItineraryItem, MustBuyItem, Traveler, Trip, TripDay } from '../types';
 import { imageForItem } from '../lib/spotImages';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -110,6 +110,33 @@ export const SupabaseService = {
             .eq('trip_id', tripId);
         if (error) throw error;
         return data || [];
+    },
+
+    async getGuideLinks(tripId: string): Promise<GuideLink[]> {
+        const { data, error } = await supabase
+            .from('zentravel_guide_links')
+            .select('*')
+            .eq('trip_id', tripId)
+            .order('created_at', { ascending: true });
+        if (error) throw error;
+        return (data || []) as GuideLink[];
+    },
+
+    async addGuideLink(record: {
+        trip_id: string;
+        itinerary_item_id?: string | null;
+        location_ref?: string | null;
+        title: string;
+        url: string;
+        source?: string | null;
+        owner_id: string;
+    }): Promise<GuideLink[]> {
+        const { data, error } = await supabase
+            .from('zentravel_guide_links')
+            .insert([record])
+            .select();
+        if (error) throw error;
+        return (data || []) as GuideLink[];
     },
 
     async getBudgetRecords(tripId: string, _ownerId: string): Promise<ExpenseItem[]> {
