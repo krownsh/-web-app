@@ -246,7 +246,7 @@ export const HomeScreen: React.FC = () => {
     const loadMustBuy = async () => {
         setIsMustBuyLoading(true);
         try {
-            if (!isGuest && myUserId) {
+            if (myUserId) {
                 await migrateLocalGuideToCloud(trip!.id, myUserId);
             }
             const customItems = await SupabaseService.getMustBuys(trip!.id, myUserId);
@@ -273,7 +273,6 @@ export const HomeScreen: React.FC = () => {
     }, [trip?.id, myUserId, isGuest]);
 
     const handleAddMustBuy = async () => {
-        if (isGuest) return;
         if (!newMustBuy.item_name) return;
         const payload = {
             item_name: newMustBuy.item_name,
@@ -295,14 +294,14 @@ export const HomeScreen: React.FC = () => {
     };
 
     const toggleCheck = (id: string) => {
-        if (isGuest) return;
+        if (!trip?.id || !myUserId) return;
         const newStatus = !checkedItems[id];
         setCheckedItems(prev => ({ ...prev, [id]: newStatus }));
         SupabaseService.syncChecklistStatus(trip!.id, id, myUserId, newStatus).catch(console.error);
     };
 
     const handleDeleteMustBuy = async (id: string, e?: any) => {
-        if (isGuest) return;
+        if (!myUserId) return;
         if (e) e.stopPropagation();
 
         // Optimistic UI
@@ -733,7 +732,6 @@ export const HomeScreen: React.FC = () => {
                         {/* Header Actions */}
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-[10px] text-zen-text-light font-bold uppercase tracking-wider">我的清單</span>
-                            {!isGuest && (
                             <button
                                 onClick={() => setIsAddMustBuyModalOpen(true)}
                                 className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-zen-moss/10 text-zen-moss font-bold text-xs active:bg-zen-moss/20 transition-colors"
@@ -741,7 +739,6 @@ export const HomeScreen: React.FC = () => {
                                 <span className="material-symbols-outlined text-[16px]">add</span>
                                 新增項目
                             </button>
-                            )}
                         </div>
 
                         <div className="flex flex-col gap-3">
@@ -756,7 +753,7 @@ export const HomeScreen: React.FC = () => {
                                     const row = (
                                             <div
                                                 onClick={() => toggleCheck(item.id)}
-                                                className={`flex items-center gap-4 p-3 rounded-2xl border duration-300 ${isGuest ? '' : 'cursor-pointer'} ${isChecked ? 'bg-zen-mist border-transparent opacity-60' : 'bg-white border-zen-rock'}`}
+                                                className={`flex items-center gap-4 p-3 rounded-2xl border duration-300 cursor-pointer ${isChecked ? 'bg-zen-mist border-transparent opacity-60' : 'bg-white border-zen-rock'}`}
                                             >
                                                 {/* Checkbox */}
                                                 <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-transform duration-200 ${isChecked ? 'bg-zen-moss border-zen-moss scale-110' : 'border-zen-rock/30 bg-white'}`}>
@@ -794,12 +791,12 @@ export const HomeScreen: React.FC = () => {
                                                 )}
                                             </div>
                                     );
-                                    return isGuest ? (
-                                        <div key={item.id || i}>{row}</div>
-                                    ) : (
+                                    return item.owner_id === myUserId ? (
                                         <SwipeableRow key={item.id || i} onDelete={() => handleDeleteMustBuy(item.id)}>
                                             {row}
                                         </SwipeableRow>
+                                    ) : (
+                                        <div key={item.id || i}>{row}</div>
                                     );
                                 })
                             ) : (
