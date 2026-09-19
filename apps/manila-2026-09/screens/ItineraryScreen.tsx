@@ -138,7 +138,7 @@ const DEFAULT_DB: Record<string, LocationGuide> = {
 // ----------------------------------------------------------------------
 
 const ItineraryScreen: React.FC = () => {
-    const { trip, days, isGuest } = useTrip();
+    const { trip, days } = useTrip();
     const { user } = useSession();
     const myUserId = user?.id || '';
     const money = currencyMeta(trip?.currency);
@@ -195,7 +195,7 @@ const ItineraryScreen: React.FC = () => {
     const loadGuideExtras = async () => {
         if (!trip?.id) return;
         try {
-            if (!isGuest && myUserId) {
+            if (myUserId) {
                 await migrateLocalGuideToCloud(trip.id, myUserId);
             }
             const [cloudLinks, cloudBuys, statuses] = await Promise.all([
@@ -215,7 +215,7 @@ const ItineraryScreen: React.FC = () => {
 
     useEffect(() => {
         void loadGuideExtras();
-    }, [trip?.id, myUserId, isGuest]);
+    }, [trip?.id, myUserId]);
 
     const spotLinks = links.filter((link) => (
         (selectedItem?.id && link.itinerary_item_id === selectedItem.id)
@@ -227,7 +227,6 @@ const ItineraryScreen: React.FC = () => {
     ));
 
     const handleAddLink = async () => {
-        if (isGuest) return;
         if (!newLink.title || !trip?.id || !myUserId) return;
         try {
             const rows = await SupabaseService.addGuideLink({
@@ -250,7 +249,6 @@ const ItineraryScreen: React.FC = () => {
     };
 
     const handleAddItem = async () => {
-        if (isGuest) return;
         if (!newItem.name || !trip?.id || !myUserId) return;
         try {
             const rows = await SupabaseService.addRecord('zentravel_must_buys', {
@@ -275,7 +273,7 @@ const ItineraryScreen: React.FC = () => {
     };
 
     const toggleCheck = (id: string) => {
-        if (isGuest || !trip?.id || !myUserId) return;
+        if (!trip?.id || !myUserId) return;
         const next = !checkedItems[id];
         setCheckedItems((prev) => ({ ...prev, [id]: next }));
         SupabaseService.syncChecklistStatus(trip.id, id, myUserId, next).catch((err) => {
@@ -286,7 +284,6 @@ const ItineraryScreen: React.FC = () => {
     };
 
     const handleDeleteLink = async (id: string) => {
-        if (isGuest) return;
         setLinks((prev) => prev.filter((item) => item.id !== id));
         try {
             await SupabaseService.deleteRecord('zentravel_guide_links', id);
@@ -298,7 +295,6 @@ const ItineraryScreen: React.FC = () => {
     };
 
     const handleDeleteMustBuy = async (id: string) => {
-        if (isGuest) return;
         setMustBuys((prev) => prev.filter((item) => item.id !== id));
         try {
             await SupabaseService.deleteRecord('zentravel_must_buys', id);
@@ -396,7 +392,6 @@ const ItineraryScreen: React.FC = () => {
                     <p className="text-[11px] text-zen-text-light mb-4">全團都看得到。正式團員可新增，誰加的誰可以刪。</p>
 
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                        {!isGuest && (
                         <button
                             type="button"
                             onClick={() => setShowLinkModal(true)}
@@ -405,7 +400,6 @@ const ItineraryScreen: React.FC = () => {
                             <span className="material-symbols-outlined text-[28px]">add</span>
                             <span className="text-[10px] font-medium">新增連結</span>
                         </button>
-                        )}
 
                         {spotLinks.map((link) => {
                             const card = (
@@ -427,7 +421,7 @@ const ItineraryScreen: React.FC = () => {
                                     </div>
                                 </a>
                             );
-                            return !isGuest && link.owner_id === myUserId ? (
+                            return link.owner_id === myUserId ? (
                                 <SwipeableRow key={link.id} onDelete={() => handleDeleteLink(link.id)}>
                                     {card}
                                 </SwipeableRow>
@@ -436,15 +430,11 @@ const ItineraryScreen: React.FC = () => {
                             );
                         })}
                     </div>
-                    {spotLinks.length === 0 && isGuest && (
-                        <p className="text-xs text-zen-text-light mt-2">這個景點還沒有收藏文章。</p>
-                    )}
                 </div>
 
                 <div className="px-6 mb-10">
                     <div className="flex items-center justify-between mb-1">
                         <h2 className="font-serif text-xl text-zen-text">必買清單</h2>
-                        {!isGuest && (
                         <button
                             type="button"
                             onClick={() => setShowItemModal(true)}
@@ -453,7 +443,6 @@ const ItineraryScreen: React.FC = () => {
                             <span className="material-symbols-outlined text-[14px]">add</span>
                             新增
                         </button>
-                        )}
                     </div>
                     <p className="text-[11px] text-zen-text-light mb-4">可選「推薦給大家」或只給自己看。點一下即可劃掉，勾選狀態每人一份。</p>
 
@@ -470,16 +459,15 @@ const ItineraryScreen: React.FC = () => {
                                 <div
                                     role="checkbox"
                                     aria-checked={isChecked}
-                                    tabIndex={isGuest ? -1 : 0}
+                                    tabIndex={0}
                                     onClick={() => toggleCheck(item.id)}
                                     onKeyDown={(e) => {
-                                        if (isGuest) return;
                                         if (e.key === 'Enter' || e.key === ' ') {
                                             e.preventDefault();
                                             toggleCheck(item.id);
                                         }
                                     }}
-                                    className={`group p-4 rounded-[1.25rem] bg-white border border-zen-rock flex items-start gap-4 ${isGuest ? '' : 'cursor-pointer'} ${isChecked ? 'opacity-60' : ''}`}
+                                    className={`group p-4 rounded-[1.25rem] bg-white border border-zen-rock flex items-start gap-4 cursor-pointer ${isChecked ? 'opacity-60' : ''}`}
                                 >
                                     <span
                                         aria-hidden
@@ -510,7 +498,7 @@ const ItineraryScreen: React.FC = () => {
                                     </div>
                                 </div>
                             );
-                            return !isGuest && item.owner_id === myUserId ? (
+                            return item.owner_id === myUserId ? (
                                 <SwipeableRow key={item.id} onDelete={() => handleDeleteMustBuy(item.id)}>
                                     {row}
                                 </SwipeableRow>
