@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { supabase } from '../services/SupabaseService';
 import { useSession, useTrip } from '../context/AppState';
 import { displayTripTitle } from '../lib/tripDisplay';
@@ -96,9 +96,12 @@ export default function Gate({ children }: { children: React.ReactNode }) {
     const [hint, setHint] = useState('');
     const [busy, setBusy] = useState(false);
     const [brandTitle] = useState(() => displayTripTitle());
+    const submittingRef = useRef(false);
 
     const submitAuth = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submittingRef.current) return;
+        submittingRef.current = true;
         setError('');
         setHint('');
         setBusy(true);
@@ -132,6 +135,7 @@ export default function Gate({ children }: { children: React.ReactNode }) {
         } catch (err: any) {
             setError(err.message || '失敗');
         } finally {
+            submittingRef.current = false;
             setBusy(false);
         }
     };

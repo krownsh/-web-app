@@ -190,7 +190,6 @@ export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId
             </div>
             <dialog
                 ref={dialogRef}
-                closedBy="any"
                 aria-label="醜照大圖"
                 className="photo-lightbox border-0 bg-transparent p-0"
                 onClose={() => setOpenId(null)}
