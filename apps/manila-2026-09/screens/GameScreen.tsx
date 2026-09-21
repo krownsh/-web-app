@@ -3,7 +3,7 @@ import { useSession, useTrip } from '../context/AppState';
 import { SupabaseService } from '../services/SupabaseService';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import { compressImageFile } from '../lib/compressImage';
-import { hasGuestLottery, markGuestLottery } from '../lib/guestLottery';
+import { hasPlayedLottery, markPlayedLottery } from '../lib/guestLottery';
 import { GameDrawReveal } from '../components/GameDrawReveal';
 import { GameGuessPicker } from '../components/GameGuessPicker';
 import { GameLotteryBridge } from '../components/GameLotteryBridge';
@@ -22,7 +22,7 @@ type Draw = {
 };
 
 export const GameScreen: React.FC = () => {
-    const { trip, gameClaim, isGuest } = useTrip();
+    const { trip, gameClaim, isGuest, markLotteryPlayed, refreshClaim } = useTrip();
     const { user } = useSession();
     const tripId = trip?.id || '';
     const userId = user?.id || '';
@@ -30,7 +30,15 @@ export const GameScreen: React.FC = () => {
 
     const [travelers, setTravelers] = useState<Traveler[]>([]);
     const [claimId, setClaimId] = useState<string | null>(null);
-    const [lotteryPlayed, setLotteryPlayed] = useState<boolean | null>(null);
+    const [lotteryPlayed, setLotteryPlayed] = useState<boolean | null>(() => {
+        try {
+            const tripId0 = trip?.id || '';
+            const userId0 = user?.id || '';
+            return hasPlayedLottery(tripId0, userId0) ? true : null;
+        } catch {
+            return null;
+        }
+    });
     const [draw, setDraw] = useState<Draw | null>(null);
     const [wishes, setWishes] = useState<Record<string, string>>({});
     const [wishDraft, setWishDraft] = useState('');
@@ -67,13 +75,11 @@ export const GameScreen: React.FC = () => {
 
     const loadClaimGate = async () => {
         if (!tripId || !userId) return;
-        const claim = gameClaim || (await SupabaseService.getMyGameClaim(tripId));
-        setClaimId(claim?.traveler_id || null);
-        if (claim?.kind === 'guest' || isGuest) {
-            setLotteryPlayed(hasGuestLottery(tripId, userId));
-        } else {
-            setLotteryPlayed(!!claim?.lottery_played_at);
-        }
+        const claim = await SupabaseService.getMyGameClaim(tripId);
+        setClaimId(claim?.traveler_id || gameClaim?.traveler_id || null);
+        const played = !!(claim?.lottery_played_at) || hasPlayedLottery(tripId, userId);
+        setLotteryPlayed(played);
+        if (played) markLotteryPlayed();
     };
 
     const reloadPlay = async () => {
@@ -138,7 +144,7 @@ export const GameScreen: React.FC = () => {
 
     useEffect(() => {
         loadClaimGate().catch((err) => setMsg(err.message));
-    }, [tripId, userId, gameClaim?.traveler_id, isGuest]);
+    }, [tripId, userId, isGuest]);
 
     useEffect(() => {
         if (!lotteryPlayed) return;
@@ -156,10 +162,14 @@ export const GameScreen: React.FC = () => {
         setMsg('');
         try {
             if (isGuest) {
-                markGuestLottery(tripId, userId);
+                markPlayedLottery(tripId, userId);
+                markLotteryPlayed();
                 return guestDraw();
             }
             await SupabaseService.finishGameLottery(tripId);
+            markPlayedLottery(tripId, userId);
+            markLotteryPlayed();
+            void refreshClaim();
             return await SupabaseService.getMyGameDraw(tripId);
         } catch (err: any) {
             setMsg(err.message || '抽籤失敗');
@@ -241,7 +251,11 @@ export const GameScreen: React.FC = () => {
                     busy={busy}
                     error={msg}
                     onFinished={finishLottery}
-                    onEnterGame={() => setLotteryPlayed(true)}
+                    onEnterGame={() => {
+                        markPlayedLottery(tripId, userId);
+                        markLotteryPlayed();
+                        setLotteryPlayed(true);
+                    }}
                 />
             </div>
         );

@@ -84,6 +84,21 @@ export default defineConfig(({ mode }) => {
               }
             },
             {
+              urlPattern: /^https:\/\/api\.open-meteo\.com\//,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'open-meteo-cache',
+                networkTimeoutSeconds: 8,
+                expiration: {
+                  maxEntries: 8,
+                  maxAgeSeconds: 60 * 30
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
               urlPattern: /^https:\/\/unpkg\.com\//,
               handler: 'CacheFirst',
               options: {

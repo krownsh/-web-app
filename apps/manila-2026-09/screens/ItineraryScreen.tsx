@@ -2,10 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import SwipeableRow from '../components/SwipeableRow';
 import { useLocation } from 'react-router-dom';
 import { MotionLink } from '../components/MotionLink';
-import { useTrip } from '../context/AppState';
+import { useSession, useTrip } from '../context/AppState';
 import { SupabaseService } from '../services/SupabaseService';
 import { imageForItem } from '../lib/spotImages';
 import { BottomSheet } from '../components/ui/bottom-sheet';
+import { GuideLink, MustBuyItem } from '../types';
+import { formatMustBuyPrice, migrateLocalGuideToCloud, parseMustBuyPrice } from '../lib/guideCloud';
+import { toast } from 'sonner';
+import { currencyMeta } from '../lib/tripDisplay';
 
 // ----------------------------------------------------------------------
 // Mock Data (Full Schedule)
@@ -135,6 +139,9 @@ const DEFAULT_DB: Record<string, LocationGuide> = {
 
 const ItineraryScreen: React.FC = () => {
     const { trip, days } = useTrip();
+    const { user } = useSession();
+    const myUserId = user?.id || '';
+    const money = currencyMeta(trip?.currency);
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
 
@@ -172,81 +179,130 @@ const ItineraryScreen: React.FC = () => {
         }
     }, [idParam]);
 
-
-    // Global Data State (persisted)
-    const [allGuides, setAllGuides] = useState<Record<string, LocationGuide>>(() => {
-        const saved = localStorage.getItem('zen_guide_data_v1');
-        return saved ? JSON.parse(saved) : DEFAULT_DB;
-    });
-
-    const currentGuide = allGuides[currentLocationName] || { name: currentLocationName, mustBuy: [], links: [] };
-
+    const [links, setLinks] = useState<GuideLink[]>([]);
+    const [mustBuys, setMustBuys] = useState<MustBuyItem[]>([]);
+    const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [showItemModal, setShowItemModal] = useState(false);
     const [newLink, setNewLink] = useState({ title: '', url: '', source: 'Web' });
-    const [newItem, setNewItem] = useState({ name: '', price: '₱', desc: '', tag: '' });
+    const [newItem, setNewItem] = useState({
+        name: '',
+        price: '',
+        desc: '',
+        visibility: 'public' as 'public' | 'private',
+    });
+
+    const loadGuideExtras = async () => {
+        if (!trip?.id) return;
+        try {
+            if (myUserId) {
+                await migrateLocalGuideToCloud(trip.id, myUserId);
+            }
+            const [cloudLinks, cloudBuys, statuses] = await Promise.all([
+                SupabaseService.getGuideLinks(trip.id),
+                SupabaseService.getMustBuys(trip.id, myUserId),
+                myUserId ? SupabaseService.getChecklistStatuses(trip.id, myUserId) : Promise.resolve([]),
+            ]);
+            setLinks(cloudLinks);
+            setMustBuys(cloudBuys);
+            const statusMap: Record<string, boolean> = {};
+            statuses.forEach((s) => { statusMap[s.item_id] = s.is_checked; });
+            setCheckedItems(statusMap);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     useEffect(() => {
-        localStorage.setItem('zen_guide_data_v1', JSON.stringify(allGuides));
-    }, [allGuides]);
+        void loadGuideExtras();
+    }, [trip?.id, myUserId]);
 
-    const handleAddLink = () => {
-        if (!newLink.title) return;
-        setAllGuides(prev => ({
-            ...prev,
-            [currentLocationName]: {
-                ...currentGuide,
-                name: currentLocationName, // Ensure name is set
-                links: [
-                    ...(prev[currentLocationName]?.links || []),
-                    {
-                        id: Date.now().toString(),
-                        title: newLink.title,
-                        url: newLink.url || '#',
-                        source: newLink.source,
-                        icon: 'link',
-                        color: 'text-zen-blue'
-                    }
-                ],
-                mustBuy: prev[currentLocationName]?.mustBuy || []
-            }
-        }));
-        setNewLink({ title: '', url: '', source: 'Web' });
-        setShowLinkModal(false);
+    const spotLinks = links.filter((link) => (
+        (selectedItem?.id && link.itinerary_item_id === selectedItem.id)
+        || (!!link.location_ref && link.location_ref === currentLocationName)
+    ));
+    const spotBuys = mustBuys.filter((item) => (
+        (selectedItem?.id && item.itinerary_item_id === selectedItem.id)
+        || (!!item.location_ref && item.location_ref === currentLocationName)
+    ));
+
+    const handleAddLink = async () => {
+        if (!newLink.title || !trip?.id || !myUserId) return;
+        try {
+            const rows = await SupabaseService.addGuideLink({
+                trip_id: trip.id,
+                itinerary_item_id: selectedItem?.id || null,
+                location_ref: currentLocationName,
+                title: newLink.title.trim(),
+                url: newLink.url.trim() || '#',
+                source: newLink.source,
+                owner_id: myUserId,
+            });
+            setLinks((prev) => [...prev, ...rows]);
+            setNewLink({ title: '', url: '', source: 'Web' });
+            setShowLinkModal(false);
+            toast.success('已分享給全團');
+        } catch (err) {
+            console.error(err);
+            toast.error('連結沒有存進資料庫');
+        }
     };
 
-    const handleAddItem = () => {
-        if (!newItem.name) return;
-        setAllGuides(prev => ({
-            ...prev,
-            [currentLocationName]: {
-                ...currentGuide,
-                name: currentLocationName,
-                mustBuy: [
-                    ...(prev[currentLocationName]?.mustBuy || []),
-                    {
-                        id: Date.now().toString(),
-                        name: newItem.name,
-                        price: newItem.price,
-                        desc: newItem.desc,
-                        tag: newItem.tag
-                    }
-                ],
-                links: prev[currentLocationName]?.links || []
-            }
-        }));
-        setNewItem({ name: '', price: '₱', desc: '', tag: '' });
-        setShowItemModal(false);
+    const handleAddItem = async () => {
+        if (!newItem.name || !trip?.id || !myUserId) return;
+        try {
+            const rows = await SupabaseService.addRecord('zentravel_must_buys', {
+                trip_id: trip.id,
+                item_name: newItem.name.trim(),
+                price: parseMustBuyPrice(newItem.price),
+                location_ref: currentLocationName,
+                itinerary_item_id: selectedItem?.id || null,
+                visibility: newItem.visibility,
+                owner_id: myUserId,
+                image_url: '',
+                note: newItem.desc.trim() || null,
+            });
+            setMustBuys((prev) => [...prev, ...(rows || [])]);
+            setNewItem({ name: '', price: '', desc: '', visibility: 'public' });
+            setShowItemModal(false);
+            toast.success(newItem.visibility === 'public' ? '已推薦給全團' : '已加入你的清單');
+        } catch (err) {
+            console.error(err);
+            toast.error('必買沒有存進資料庫');
+        }
     };
 
-    const handleDeleteLocalItem = (type: 'links' | 'mustBuy', id: string) => {
-        setAllGuides(prev => ({
-            ...prev,
-            [currentLocationName]: {
-                ...prev[currentLocationName],
-                [type]: (prev[currentLocationName][type] || []).filter((i: any) => i.id !== id)
-            }
-        }));
+    const toggleCheck = (id: string) => {
+        if (!trip?.id || !myUserId) return;
+        const next = !checkedItems[id];
+        setCheckedItems((prev) => ({ ...prev, [id]: next }));
+        SupabaseService.syncChecklistStatus(trip.id, id, myUserId, next).catch((err) => {
+            console.error(err);
+            setCheckedItems((prev) => ({ ...prev, [id]: !next }));
+            toast.error('勾選沒有存進去');
+        });
+    };
+
+    const handleDeleteLink = async (id: string) => {
+        setLinks((prev) => prev.filter((item) => item.id !== id));
+        try {
+            await SupabaseService.deleteRecord('zentravel_guide_links', id);
+        } catch (err) {
+            console.error(err);
+            toast.error('刪除失敗');
+            void loadGuideExtras();
+        }
+    };
+
+    const handleDeleteMustBuy = async (id: string) => {
+        setMustBuys((prev) => prev.filter((item) => item.id !== id));
+        try {
+            await SupabaseService.deleteRecord('zentravel_must_buys', id);
+        } catch (err) {
+            console.error(err);
+            toast.error('刪除失敗');
+            void loadGuideExtras();
+        }
     };
 
     // Auto-scroll to selected item
@@ -330,12 +386,14 @@ const ItineraryScreen: React.FC = () => {
                 </div>
 
                 <div className="px-6 mt-8 mb-10">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-1">
                         <h2 className="font-serif text-xl text-zen-text">收藏文章</h2>
                     </div>
+                    <p className="text-[11px] text-zen-text-light mb-4">全團都看得到。正式團員可新增，誰加的誰可以刪。</p>
 
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                         <button
+                            type="button"
                             onClick={() => setShowLinkModal(true)}
                             className="shrink-0 size-28 rounded-[1.25rem] border border-dashed border-zen-rock flex flex-col items-center justify-center gap-2 text-zen-text-light bg-white"
                         >
@@ -343,8 +401,8 @@ const ItineraryScreen: React.FC = () => {
                             <span className="text-[10px] font-medium">新增連結</span>
                         </button>
 
-                        {currentGuide.links.map((link) => (
-                            <SwipeableRow key={link.id} onDelete={() => handleDeleteLocalItem('links', link.id)}>
+                        {spotLinks.map((link) => {
+                            const card = (
                                 <a
                                     href={link.url}
                                     target="_blank"
@@ -353,24 +411,32 @@ const ItineraryScreen: React.FC = () => {
                                 >
                                     <div className="flex justify-between items-start">
                                         <div className="size-7 rounded-full bg-zen-mist flex items-center justify-center text-zen-moss">
-                                            <span className="material-symbols-outlined text-[16px]">{link.icon}</span>
+                                            <span className="material-symbols-outlined text-[16px]">link</span>
                                         </div>
                                         <span className="material-symbols-outlined text-zen-rock text-[16px]">open_in_new</span>
                                     </div>
                                     <div>
                                         <h3 className="text-xs font-medium text-zen-text leading-tight line-clamp-2 mb-1">{link.title}</h3>
-                                        <span className="text-[9px] text-zen-text-light bg-zen-mist px-1.5 py-0.5 rounded">{link.source}</span>
+                                        <span className="text-[9px] text-zen-text-light bg-zen-mist px-1.5 py-0.5 rounded">{link.source || 'Web'}</span>
                                     </div>
                                 </a>
-                            </SwipeableRow>
-                        ))}
+                            );
+                            return link.owner_id === myUserId ? (
+                                <SwipeableRow key={link.id} onDelete={() => handleDeleteLink(link.id)}>
+                                    {card}
+                                </SwipeableRow>
+                            ) : (
+                                <div key={link.id}>{card}</div>
+                            );
+                        })}
                     </div>
                 </div>
 
                 <div className="px-6 mb-10">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-1">
                         <h2 className="font-serif text-xl text-zen-text">必買清單</h2>
                         <button
+                            type="button"
                             onClick={() => setShowItemModal(true)}
                             className="btn-cta text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 min-h-[44px]"
                         >
@@ -378,35 +444,68 @@ const ItineraryScreen: React.FC = () => {
                             新增
                         </button>
                     </div>
+                    <p className="text-[11px] text-zen-text-light mb-4">可選「推薦給大家」或只給自己看。點一下即可劃掉，勾選狀態每人一份。</p>
 
                     <div className="flex flex-col gap-3">
-                        {currentGuide.mustBuy.length === 0 && (
+                        {spotBuys.length === 0 && (
                             <div className="p-8 rounded-[1.25rem] bg-white text-center border border-dashed border-zen-rock">
                                 <p className="text-sm text-zen-text-light">還沒有必買清單，快來新增吧！</p>
                             </div>
                         )}
 
-                        {currentGuide.mustBuy.map((item) => (
-                            <SwipeableRow key={item.id} onDelete={() => handleDeleteLocalItem('mustBuy', item.id)}>
-                                <div className="group p-4 rounded-[1.25rem] bg-white border border-zen-rock flex items-start gap-4">
-                                    <button className="size-5 mt-1 rounded-full border-2 border-zen-rock shrink-0 group-active:bg-cta group-active:border-cta"></button>
+                        {spotBuys.map((item) => {
+                            const isChecked = !!checkedItems[item.id];
+                            const row = (
+                                <div
+                                    role="checkbox"
+                                    aria-checked={isChecked}
+                                    tabIndex={0}
+                                    onClick={() => toggleCheck(item.id)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            toggleCheck(item.id);
+                                        }
+                                    }}
+                                    className={`group p-4 rounded-[1.25rem] bg-white border border-zen-rock flex items-start gap-4 cursor-pointer ${isChecked ? 'opacity-60' : ''}`}
+                                >
+                                    <span
+                                        aria-hidden
+                                        className={`size-5 mt-1 rounded-full border-2 shrink-0 flex items-center justify-center ${isChecked ? 'bg-zen-moss border-zen-moss' : 'border-zen-rock'}`}
+                                    >
+                                        {isChecked && <span className="material-symbols-outlined text-white text-[14px]">check</span>}
+                                    </span>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start gap-3">
-                                            <h3 className="text-base font-medium text-zen-text leading-tight">{item.name}</h3>
-                                            <div className="px-2 py-0.5 rounded-md bg-zen-mist text-xs text-zen-moss font-serif">
-                                                {item.price}
-                                            </div>
+                                            <h3 className={`text-base font-medium text-zen-text leading-tight ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
+                                                {item.item_name}
+                                            </h3>
+                                            {formatMustBuyPrice(item.price, money.symbol) && (
+                                                <div className="px-2 py-0.5 rounded-md bg-zen-mist text-xs text-zen-moss font-serif">
+                                                    {formatMustBuyPrice(item.price, money.symbol)}
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-xs text-zen-text-light mt-1.5 leading-relaxed">{item.desc}</p>
-                                        {item.tag && (
-                                            <span className="inline-block mt-2 text-[9px] font-bold text-white bg-cta px-2 py-0.5 rounded-full">
-                                                #{item.tag}
+                                        {item.note && (
+                                            <p className={`text-xs text-zen-text-light mt-1.5 leading-relaxed ${isChecked ? 'line-through' : ''}`}>{item.note}</p>
+                                        )}
+                                        {item.visibility === 'private' && (
+                                            <span className="inline-flex items-center gap-0.5 mt-2 text-[9px] font-bold text-zen-brown bg-zen-brown/10 px-1.5 py-0.5 rounded-md">
+                                                <span className="material-symbols-outlined text-[10px]">lock</span>
+                                                私人
                                             </span>
                                         )}
                                     </div>
                                 </div>
-                            </SwipeableRow>
-                        ))}
+                            );
+                            return item.owner_id === myUserId ? (
+                                <SwipeableRow key={item.id} onDelete={() => handleDeleteMustBuy(item.id)}>
+                                    {row}
+                                </SwipeableRow>
+                            ) : (
+                                <div key={item.id}>{row}</div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -453,7 +552,8 @@ const ItineraryScreen: React.FC = () => {
                                         </select>
                                     </div>
                                     <button
-                                        onClick={handleAddLink}
+                                        type="button"
+                                        onClick={() => void handleAddLink()}
                                         className="w-full py-4 mt-2 rounded-xl btn-cta font-bold min-h-[44px]"
                                     >
                                         新增連結
@@ -476,27 +576,15 @@ const ItineraryScreen: React.FC = () => {
                                             onChange={e => setNewItem({ ...newItem, name: e.target.value })}
                                         />
                                     </div>
-                                    <div className="flex gap-4">
-                                        <div className="flex-1">
-                                            <label className="text-xs font-bold text-zen-text-light uppercase">預估價格</label>
-                                            <input
-                                                type="text"
-                                                className="w-full border-b border-zen-rock/50 py-2 bg-transparent font-medium text-zen-text focus:outline-none focus:border-zen-moss"
-                                                placeholder="₱100"
-                                                value={newItem.price}
-                                                onChange={e => setNewItem({ ...newItem, price: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="flex-1">
-                                            <label className="text-xs font-bold text-zen-text-light uppercase">標籤 (選填)</label>
-                                            <input
-                                                type="text"
-                                                className="w-full border-b border-zen-rock/50 py-2 bg-transparent font-medium text-zen-text focus:outline-none focus:border-zen-moss"
-                                                placeholder="例如：伴手禮"
-                                                value={newItem.tag}
-                                                onChange={e => setNewItem({ ...newItem, tag: e.target.value })}
-                                            />
-                                        </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-zen-text-light uppercase">預估價格</label>
+                                        <input
+                                            type="text"
+                                            className="w-full border-b border-zen-rock/50 py-2 bg-transparent font-medium text-zen-text focus:outline-none focus:border-zen-moss"
+                                            placeholder={`${money.symbol}100`}
+                                            value={newItem.price}
+                                            onChange={e => setNewItem({ ...newItem, price: e.target.value })}
+                                        />
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-zen-text-light uppercase">備註 / 描述</label>
@@ -507,8 +595,31 @@ const ItineraryScreen: React.FC = () => {
                                             onChange={e => setNewItem({ ...newItem, desc: e.target.value })}
                                         />
                                     </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-zen-text-light uppercase tracking-wide">公開程度</label>
+                                        <div className="flex gap-2 mt-1">
+                                            {(['public', 'private'] as const).map((v) => (
+                                                <button
+                                                    key={v}
+                                                    type="button"
+                                                    onClick={() => setNewItem({ ...newItem, visibility: v })}
+                                                    className={`flex-1 py-3 px-3 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${newItem.visibility === v
+                                                        ? 'bg-zen-moss text-white border-zen-moss shadow-sm'
+                                                        : 'bg-transparent text-zen-text-light border-zen-rock/20'
+                                                        }`}
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">{v === 'public' ? 'language' : 'lock'}</span>
+                                                    {v === 'public' ? '推薦給大家' : '加入我的清單'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-zen-text-light mt-2 px-1">
+                                            {newItem.visibility === 'public' ? '＊全團都看得到這項推薦。' : '＊只有你看得到，換手機也在。'}
+                                        </p>
+                                    </div>
                                     <button
-                                        onClick={handleAddItem}
+                                        type="button"
+                                        onClick={() => void handleAddItem()}
                                         className="w-full py-4 mt-2 rounded-xl btn-cta font-bold min-h-[44px]"
                                     >
                                         加入清單
