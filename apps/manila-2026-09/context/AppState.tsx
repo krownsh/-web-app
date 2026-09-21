@@ -9,6 +9,7 @@ interface SessionState {
     user: User | null;
     loading: boolean;
     enrolled: boolean;
+    applySession: (next: Session | null) => void;
     enrollThisApp: () => Promise<void>;
 }
 
@@ -53,8 +54,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [session, setSession] = useState<Session | null>(null);
     const [enrolled, setEnrolled] = useState(false);
     const [loading, setLoading] = useState(true);
+    const enrollEpoch = useRef(0);
+
+    const applySession = useCallback((next: Session | null) => {
+        setSession(next);
+    }, []);
 
     const refreshEnrollment = useCallback(async (userId?: string) => {
+        const epoch = ++enrollEpoch.current;
         if (!userId) {
             setEnrolled(false);
             return;
@@ -64,6 +71,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             .select('id')
             .eq('id', userId)
             .maybeSingle();
+        if (epoch !== enrollEpoch.current) return;
         setEnrolled(!!data);
         if (data) {
             await supabase
@@ -82,21 +90,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             last_seen_at: new Date().toISOString(),
         });
         if (error) throw error;
+        enrollEpoch.current += 1;
         setEnrolled(true);
     }, []);
 
     useEffect(() => {
-        supabase.auth.getSession().then(async ({ data }) => {
+        supabase.auth.getSession().then(({ data }) => {
             setSession(data.session);
-            await refreshEnrollment(data.session?.user?.id);
             setLoading(false);
         });
         const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
             setSession(next);
-            refreshEnrollment(next?.user?.id).then(() => undefined);
+            setLoading(false);
         });
         return () => sub.subscription.unsubscribe();
-    }, [refreshEnrollment]);
+    }, []);
+
+    useEffect(() => {
+        if (loading) return;
+        void refreshEnrollment(session?.user?.id);
+    }, [loading, session?.user?.id, refreshEnrollment]);
 
     const value = useMemo(
         () => ({
@@ -104,9 +117,10 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             user: session?.user ?? null,
             loading,
             enrolled,
+            applySession,
             enrollThisApp,
         }),
-        [session, loading, enrolled, enrollThisApp]
+        [session, loading, enrolled, applySession, enrollThisApp]
     );
 
     return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

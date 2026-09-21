@@ -88,7 +88,7 @@ function LoginStage({ children }: { children: React.ReactNode }) {
 }
 
 export default function Gate({ children }: { children: React.ReactNode }) {
-    const { user, loading: authLoading, enrolled, enrollThisApp } = useSession();
+    const { user, loading: authLoading, enrolled, applySession, enrollThisApp } = useSession();
     const { trip, loading: tripLoading, refresh } = useTrip();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -104,8 +104,9 @@ export default function Gate({ children }: { children: React.ReactNode }) {
         setBusy(true);
         const creds = { email: email.trim(), password };
         try {
-            const { error: signInErr } = await supabase.auth.signInWithPassword(creds);
+            const { data: signedIn, error: signInErr } = await supabase.auth.signInWithPassword(creds);
             if (!signInErr) {
+                if (signedIn.session) applySession(signedIn.session);
                 await enrollThisApp();
                 return;
             }
@@ -126,6 +127,7 @@ export default function Gate({ children }: { children: React.ReactNode }) {
                 setHint('帳號已建立。請先到信箱完成確認，再開啟登入。');
                 return;
             }
+            applySession(signedUp.session);
             await enrollThisApp();
         } catch (err: any) {
             setError(err.message || '失敗');

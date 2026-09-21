@@ -24,8 +24,9 @@ type Props = {
 };
 
 const PLACE = {
-    1: { label: '大醜', ring: 'ring-[#d4a017]', badge: 'bg-[#d4a017] text-white', icon: 'emoji_events' },
-    2: { label: '小醜', ring: 'ring-[#9aa3a8]', badge: 'bg-[#8a9499] text-white', icon: 'military_tech' },
+    1: { label: '大醜', ring: 'bg-[#d4a017]', badge: 'bg-[#d4a017] text-white', icon: 'emoji_events' },
+    2: { label: '小醜', ring: 'bg-[#9aa3a8]', badge: 'bg-[#8a9499] text-white', icon: 'military_tech' },
+    3: { label: '銅醜', ring: 'bg-[#c47a3a]', badge: 'bg-[#c47a3a] text-white', icon: 'workspace_premium' },
 } as const;
 
 function rankPhotos(photos: DevilLeaderboardPhoto[], votes: DevilPhotoVote[]) {
@@ -44,7 +45,7 @@ function rankPhotos(photos: DevilLeaderboardPhoto[], votes: DevilPhotoVote[]) {
         .map((photo, index) => ({
             ...photo,
             voters: grouped.get(photo.id) ?? [],
-            place: (index < 2 ? (index + 1) : null) as 1 | 2 | null,
+            place: (index < 3 ? (index + 1) : null) as 1 | 2 | 3 | null,
         }));
 }
 
@@ -52,7 +53,7 @@ const VoterRow: React.FC<{ voters: DevilPhotoVote[] }> = ({ voters }) => {
     const shown = voters.slice(0, 8);
     const extra = voters.length - shown.length;
     return (
-        <div className="flex items-center gap-1.5 min-h-[32px] px-1 pt-1.5">
+        <div className="flex items-center gap-1 min-h-[28px] overflow-hidden px-0.5 pt-1">
             {voters.length === 0 ? (
                 <p className="text-[10px] text-zen-text-light">還沒有人投</p>
             ) : (
@@ -93,44 +94,44 @@ type CardProps = {
     onOpen: () => void;
     onVote: () => void;
     voting: boolean;
-    imageClass: string;
-    className?: string;
 };
 
-const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, voting, imageClass, className = '' }) => {
+const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, voting }) => {
     const votedHere = photo.voters.some((v) => v.user_id === myUserId);
     const place = photo.place ? PLACE[photo.place] : null;
 
     return (
-        <figure className={`min-w-0 ${className}`}>
-            <div className={`relative overflow-hidden rounded-xl bg-zen-mist ${place ? `ring-2 ${place.ring}` : ''}`}>
-                {place && (
-                    <span className={`absolute left-2 top-2 z-[1] inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${place.badge}`}>
-                        <span className="material-symbols-outlined text-[14px]">{place.icon}</span>
-                        {place.label}
-                    </span>
-                )}
-                <button type="button" onClick={onOpen} className="block w-full text-left" aria-label="放大醜照">
-                    <img src={photo.url} alt="" className={`w-full object-cover ${imageClass}`} />
-                </button>
-                {votedHere ? (
-                    <span className="absolute bottom-2 right-2 rounded-full bg-zen-moss/90 px-2.5 py-1 text-[10px] font-medium text-white">
-                        已投
-                    </span>
-                ) : (
-                    <button
-                        type="button"
-                        disabled={voting}
-                        aria-label="投這張醜照"
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            onVote();
-                        }}
-                        className="absolute bottom-2 right-2 flex size-11 items-center justify-center rounded-full bg-white text-cta shadow-md disabled:opacity-60"
-                    >
-                        <span className="material-symbols-outlined text-[22px]">how_to_vote</span>
+        <figure className="w-[7.25rem] shrink-0">
+            <div className={`rounded-xl p-[3px] ${place ? place.ring : 'bg-zen-rock/70'}`}>
+                <div className="relative overflow-hidden rounded-[0.6rem] bg-zen-mist">
+                    {place && (
+                        <span className={`absolute left-1.5 top-1.5 z-[1] inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${place.badge}`}>
+                            <span className="material-symbols-outlined text-[13px]">{place.icon}</span>
+                            {place.label}
+                        </span>
+                    )}
+                    <button type="button" onClick={onOpen} className="block w-full text-left" aria-label="放大醜照">
+                        <img src={photo.url} alt="" className="aspect-square w-full object-cover" />
                     </button>
-                )}
+                    {votedHere ? (
+                        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-zen-moss/90 px-2 py-0.5 text-[10px] font-medium text-white">
+                            已投
+                        </span>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled={voting}
+                            aria-label="投這張醜照"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onVote();
+                            }}
+                            className="absolute bottom-1.5 right-1.5 flex size-9 items-center justify-center rounded-full bg-white text-cta shadow-md disabled:opacity-60"
+                        >
+                            <span className="material-symbols-outlined text-[20px]">how_to_vote</span>
+                        </button>
+                    )}
+                </div>
             </div>
             <VoterRow voters={photo.voters} />
         </figure>
@@ -141,9 +142,6 @@ export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId
     const dialogRef = useRef<HTMLDialogElement>(null);
     const [openId, setOpenId] = useState<string | null>(null);
     const ranked = useMemo(() => rankPhotos(photos, votes), [photos, votes]);
-    const first = ranked[0];
-    const second = ranked[1];
-    const rest = ranked.slice(2);
     const opened = photos.find((p) => p.id === openId) || null;
 
     useEffect(() => {
@@ -175,31 +173,20 @@ export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId
 
     if (!photos.length) return null;
 
-    const cardProps = (photo: ReturnType<typeof rankPhotos>[number], imageClass: string) => ({
+    const cardProps = (photo: ReturnType<typeof rankPhotos>[number]) => ({
         photo,
         myUserId,
         voting,
-        imageClass,
         onOpen: () => setOpenId(photo.id),
         onVote: () => onVote(photo.id),
     });
 
     return (
         <>
-            <div className="flex flex-col gap-3">
-                {(first || second) && (
-                    <div className="grid grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] items-end gap-2">
-                        {first ? <PhotoCard key={first.id} {...cardProps(first, 'h-52')} /> : <div />}
-                        {second ? <PhotoCard key={second.id} {...cardProps(second, 'h-36')} /> : <div />}
-                    </div>
-                )}
-                {rest.length > 0 && (
-                    <div className="grid grid-cols-2 gap-3">
-                        {rest.map((photo) => (
-                            <PhotoCard key={photo.id} {...cardProps(photo, 'h-36')} />
-                        ))}
-                    </div>
-                )}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar overscroll-x-contain pb-1">
+                {ranked.map((photo) => (
+                    <PhotoCard key={photo.id} {...cardProps(photo)} />
+                ))}
             </div>
             <dialog
                 ref={dialogRef}
