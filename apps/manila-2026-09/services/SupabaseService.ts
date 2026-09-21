@@ -50,6 +50,8 @@ export const SupabaseService = {
         const { error } = await supabase.rpc('zentravel_release_my_identity', { p_trip_id: tripId });
         if (error) throw error;
     },
+
+    async getMyTrips(): Promise<Trip[]> {
         const { data, error } = await supabase
             .from('zentravel_trips')
             .select('*')
