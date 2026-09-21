@@ -77,13 +77,16 @@ export const ClaimTravelerScreen: React.FC<{
             lockedIn = true;
             if (data.session) applySession(data.session);
             setPendingFace(null);
-            onClaimed({
-                kind: face.kind,
-                traveler_id: face.id,
-                display_name: face.display_name,
-                photo_url: face.photo_url,
-                lottery_played_at: null,
-            });
+            const persisted = await SupabaseService.getMyGameClaim(tripId).catch(() => null);
+            onClaimed(
+                persisted || {
+                    kind: face.kind,
+                    traveler_id: face.id,
+                    display_name: face.display_name,
+                    photo_url: face.photo_url,
+                    lottery_played_at: null,
+                }
+            );
         } catch (err: any) {
             const taken = /already taken/i.test(err.message);
             setError(taken ? '這位已被選走，請再選' : err.message || '選擇失敗');
