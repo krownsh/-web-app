@@ -138,6 +138,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [claimReady, setClaimReady] = useState(false);
 
     const bootstrapped = useRef(false);
+    const loadGen = useRef(0);
 
     const applyClaim = useCallback((claim: GameClaim | null, tripId?: string) => {
         if (claim?.kind === 'guest' && tripId && userId && hasGuestLottery(tripId, userId)) {
@@ -148,23 +149,26 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [userId]);
 
     const refreshClaim = useCallback(async () => {
+        const gen = ++loadGen.current;
         if (!userId || !enrolled) {
-            setGameClaim(null);
+            if (gen !== loadGen.current) return;
+            if (!userId) setGameClaim(null);
             setClaimReady(true);
             return;
         }
         if (!trip?.id) {
-            // 行程還在載入時不要把 claimReady 打成 false，否則首頁會卡在「載入中」
             return;
         }
         try {
             const claim = await SupabaseService.getMyGameClaim(trip.id);
+            if (gen !== loadGen.current) return;
             applyClaim(claim, trip.id);
         } catch (err) {
             console.error(err);
+            if (gen !== loadGen.current) return;
             setGameClaim(null);
         } finally {
-            setClaimReady(true);
+            if (gen === loadGen.current) setClaimReady(true);
         }
     }, [userId, enrolled, trip?.id, applyClaim]);
 
@@ -174,10 +178,12 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const refresh = useCallback(async () => {
+        const gen = ++loadGen.current;
         if (!userId) {
             bootstrapped.current = false;
             try {
                 const wall = await SupabaseService.getPersonaWall();
+                if (gen !== loadGen.current) return;
                 const tripId = wall[0]?.trip_id;
                 setTrip(
                     tripId
@@ -196,8 +202,10 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 );
             } catch (err) {
                 console.error(err);
+                if (gen !== loadGen.current) return;
                 setTrip(null);
             }
+            if (gen !== loadGen.current) return;
             setTrips([]);
             setDays([]);
             setRole(null);
@@ -207,7 +215,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
         }
         if (!enrolled) {
-            setLoading(false);
+            if (gen === loadGen.current) setLoading(false);
             return;
         }
         if (!bootstrapped.current) setLoading(true);
@@ -221,6 +229,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
                 list = await SupabaseService.getMyTrips();
             }
+            if (gen !== loadGen.current) return;
             setTrips(list);
             const active = list[0] || null;
             setTrip(active);
@@ -238,12 +247,14 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         return null;
                     }),
                 ]);
+                if (gen !== loadGen.current) return;
                 setDays(tripDays);
                 const nextRole = (memberRes.data?.role as 'owner' | 'member' | 'guest') || 'member';
                 setRole(nextRole);
                 applyClaim(claim, active.id);
                 setClaimReady(true);
             } else {
+                if (gen !== loadGen.current) return;
                 setDays([]);
                 setRole(null);
                 setGameClaim(null);
@@ -251,7 +262,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             bootstrapped.current = true;
         } finally {
-            setLoading(false);
+            if (gen === loadGen.current) setLoading(false);
         }
     }, [userId, enrolled, applyClaim]);
 
