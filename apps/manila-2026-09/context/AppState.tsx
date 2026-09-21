@@ -32,6 +32,7 @@ interface TripState {
     claimReady: boolean;
     refresh: () => Promise<void>;
     refreshClaim: () => Promise<void>;
+    acceptClaim: (claim: GameClaim) => void;
     markLotteryPlayed: () => void;
 }
 
@@ -138,7 +139,8 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [claimReady, setClaimReady] = useState(false);
 
     const bootstrapped = useRef(false);
-    const loadGen = useRef(0);
+    const tripGen = useRef(0);
+    const claimGen = useRef(0);
 
     const applyClaim = useCallback((claim: GameClaim | null, tripId?: string) => {
         if (claim?.kind === 'guest' && tripId && userId && hasGuestLottery(tripId, userId)) {
@@ -149,9 +151,9 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [userId]);
 
     const refreshClaim = useCallback(async () => {
-        const gen = ++loadGen.current;
+        const gen = ++claimGen.current;
         if (!userId || !enrolled) {
-            if (gen !== loadGen.current) return;
+            if (gen !== claimGen.current) return;
             if (!userId) setGameClaim(null);
             setClaimReady(true);
             return;
@@ -161,16 +163,23 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         try {
             const claim = await SupabaseService.getMyGameClaim(trip.id);
-            if (gen !== loadGen.current) return;
-            applyClaim(claim, trip.id);
+            if (gen !== claimGen.current) return;
+            if (claim) applyClaim(claim, trip.id);
         } catch (err) {
             console.error(err);
-            if (gen !== loadGen.current) return;
-            setGameClaim(null);
         } finally {
-            if (gen === loadGen.current) setClaimReady(true);
+            if (gen === claimGen.current) setClaimReady(true);
         }
     }, [userId, enrolled, trip?.id, applyClaim]);
+
+    const acceptClaim = useCallback((claim: GameClaim) => {
+        claimGen.current += 1;
+        applyClaim(claim);
+        setRole(claim.kind === 'guest' ? 'guest' : 'member');
+        setClaimReady(true);
+        setLoading(false);
+        bootstrapped.current = true;
+    }, [applyClaim]);
 
     const markLotteryPlayed = useCallback(() => {
         const now = new Date().toISOString();
@@ -178,11 +187,11 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const refresh = useCallback(async () => {
-        const gen = ++loadGen.current;
+        const gen = ++tripGen.current;
         if (!userId || !enrolled) {
             try {
                 const wall = await SupabaseService.getPersonaWall();
-                if (gen !== loadGen.current) return;
+                if (gen !== tripGen.current) return;
                 const tripId = wall[0]?.trip_id;
                 setTrip(
                     tripId
@@ -201,14 +210,16 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 );
             } catch (err) {
                 console.error(err);
-                if (gen !== loadGen.current) return;
+                if (gen !== tripGen.current) return;
                 setTrip(null);
             }
-            if (gen !== loadGen.current) return;
+            if (gen !== tripGen.current) return;
             setTrips([]);
             setDays([]);
-            setRole(null);
-            setGameClaim(null);
+            if (!userId) {
+                setRole(null);
+                setGameClaim(null);
+            }
             setClaimReady(true);
             setLoading(false);
             bootstrapped.current = true;
@@ -225,7 +236,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
                 list = await SupabaseService.getMyTrips();
             }
-            if (gen !== loadGen.current) return;
+            if (gen !== tripGen.current) return;
             setTrips(list);
             const active = list[0] || null;
             setTrip(active);
@@ -243,22 +254,20 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         return null;
                     }),
                 ]);
-                if (gen !== loadGen.current) return;
+                if (gen !== tripGen.current) return;
                 setDays(tripDays);
                 const nextRole = (memberRes.data?.role as 'owner' | 'member' | 'guest') || 'member';
                 setRole(nextRole);
-                applyClaim(claim, active.id);
+                if (claim) applyClaim(claim, active.id);
                 setClaimReady(true);
             } else {
-                if (gen !== loadGen.current) return;
+                if (gen !== tripGen.current) return;
                 setDays([]);
-                setRole(null);
-                setGameClaim(null);
                 setClaimReady(true);
             }
             bootstrapped.current = true;
         } finally {
-            if (gen === loadGen.current) setLoading(false);
+            if (gen === tripGen.current) setLoading(false);
         }
     }, [userId, enrolled, applyClaim]);
 
@@ -287,9 +296,10 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             claimReady,
             refresh,
             refreshClaim,
+            acceptClaim,
             markLotteryPlayed,
         }),
-        [trips, trip, days, role, isGuest, loading, gameClaim, claimReady, refresh, refreshClaim, markLotteryPlayed]
+        [trips, trip, days, role, isGuest, loading, gameClaim, claimReady, refresh, refreshClaim, acceptClaim, markLotteryPlayed]
     );
 
     return <TripContext.Provider value={value}>{children}</TripContext.Provider>;

@@ -16,7 +16,7 @@ import { displayTripTitle } from './lib/tripDisplay';
 
 const AppContent: React.FC = () => {
   const location = useLocation();
-  const { trip, gameClaim, claimReady, refresh, refreshClaim } = useTrip();
+  const { trip, gameClaim, claimReady, refresh, acceptClaim } = useTrip();
 
   if (!trip?.id || !claimReady) {
     return (
@@ -38,10 +38,7 @@ const AppContent: React.FC = () => {
     return (
       <ClaimTravelerScreen
         tripId={trip.id}
-        onClaimed={() => {
-          void refresh();
-          void refreshClaim();
-        }}
+        onClaimed={acceptClaim}
       />
     );
   }

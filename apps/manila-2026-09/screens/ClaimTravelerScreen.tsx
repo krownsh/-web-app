@@ -15,7 +15,10 @@ type Face = {
     badge?: string;
 };
 
-export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => void }> = ({ tripId, onClaimed }) => {
+export const ClaimTravelerScreen: React.FC<{
+    tripId: string;
+    onClaimed: (claim: { kind: 'guest' | 'traveler'; traveler_id: string; display_name: string; photo_url: string | null; lottery_played_at: string | null }) => void;
+}> = ({ tripId, onClaimed }) => {
     const { applySession, enrollThisApp } = useSession();
     const [faces, setFaces] = useState<Face[]>([]);
     const [busy, setBusy] = useState<string | null>(null);
@@ -52,14 +55,14 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
         }
         setError('');
         setBusy(face.id);
+        let lockedIn = false;
         try {
-            await supabase.auth.signOut();
             const { data, error: signInErr } = await supabase.auth.signInWithPassword({
                 email,
                 password: PERSONA_PASSWORD,
             });
             if (signInErr) throw signInErr;
-            await new Promise((resolve) => window.setTimeout(resolve, 80));
+            await new Promise((resolve) => window.setTimeout(resolve, 150));
             await enrollThisApp();
             await SupabaseService.joinThisAppTrip();
             try {
@@ -71,14 +74,21 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
             } catch (claimErr: any) {
                 if (!/already claimed/i.test(claimErr.message || '')) throw claimErr;
             }
+            lockedIn = true;
             if (data.session) applySession(data.session);
             setPendingFace(null);
-            onClaimed();
+            onClaimed({
+                kind: face.kind,
+                traveler_id: face.id,
+                display_name: face.display_name,
+                photo_url: face.photo_url,
+                lottery_played_at: null,
+            });
         } catch (err: any) {
             const taken = /already taken/i.test(err.message);
             setError(taken ? '這位已被選走，請再選' : err.message || '選擇失敗');
             setPendingFace(null);
-            await supabase.auth.signOut().catch(() => undefined);
+            if (!lockedIn) await supabase.auth.signOut().catch(() => undefined);
             load();
         } finally {
             setBusy(null);
