@@ -180,7 +180,6 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refresh = useCallback(async () => {
         const gen = ++loadGen.current;
         if (!userId || !enrolled) {
-            bootstrapped.current = false;
             try {
                 const wall = await SupabaseService.getPersonaWall();
                 if (gen !== loadGen.current) return;
@@ -212,6 +211,7 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setGameClaim(null);
             setClaimReady(true);
             setLoading(false);
+            bootstrapped.current = true;
             return;
         }
         if (!bootstrapped.current) setLoading(true);

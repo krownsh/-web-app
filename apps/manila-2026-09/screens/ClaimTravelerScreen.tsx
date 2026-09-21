@@ -59,6 +59,7 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
                 password: PERSONA_PASSWORD,
             });
             if (signInErr) throw signInErr;
+            await new Promise((resolve) => window.setTimeout(resolve, 80));
             await enrollThisApp();
             await SupabaseService.joinThisAppTrip();
             try {
