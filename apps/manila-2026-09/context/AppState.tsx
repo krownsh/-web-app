@@ -176,8 +176,29 @@ export const TripProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refresh = useCallback(async () => {
         if (!userId || !enrolled) {
             bootstrapped.current = false;
+            try {
+                const wall = await SupabaseService.getPersonaWall();
+                const tripId = wall[0]?.trip_id;
+                setTrip(
+                    tripId
+                        ? {
+                              id: tripId,
+                              slug: 'manila-2026-09',
+                              join_code: '',
+                              title: '',
+                              start_date: '',
+                              end_date: '',
+                              timezone: 'Asia/Manila',
+                              currency: 'PHP',
+                              sos: [],
+                          }
+                        : null
+                );
+            } catch (err) {
+                console.error(err);
+                setTrip(null);
+            }
             setTrips([]);
-            setTrip(null);
             setDays([]);
             setRole(null);
             setGameClaim(null);

@@ -101,12 +101,11 @@ const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, votin
     const place = photo.place ? PLACE[photo.place] : null;
 
     return (
-        <figure className="w-[12rem] shrink-0">
+        <figure className="w-[15rem] shrink-0">
             <div className={`rounded-xl p-[3px] ${place ? place.ring : 'bg-zen-rock/70'}`}>
                 <div className="relative overflow-hidden rounded-[0.6rem] bg-zen-mist">
                     {place && (
-                        <span className={`absolute left-2 top-2 z-[1] inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${place.badge}`}>
-                            <span className="material-symbols-outlined text-[14px]">{place.icon}</span>
+                        <span className={`absolute left-1.5 top-1.5 z-[1] rounded-full px-1.5 py-0 text-[8px] font-medium leading-4 ${place.badge}`}>
                             {place.label}
                         </span>
                     )}

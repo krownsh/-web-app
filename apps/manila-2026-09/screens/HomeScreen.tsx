@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SwipeableRow from '../components/SwipeableRow';
 import { MotionLink } from '../components/MotionLink';
-import { SupabaseService } from '../services/SupabaseService';
+import { supabase, SupabaseService } from '../services/SupabaseService';
 import { MustBuyItem, ChecklistStatus, ItineraryItem, Traveler } from '../types';
 import { useSession, useTrip } from '../context/AppState';
 import { currencyMeta, displayTripTitle, buildOpenMeteoUrl, parseOpenMeteo, weatherPlace, resolveHomeTripDay } from '../lib/tripDisplay';
@@ -493,6 +493,20 @@ export const HomeScreen: React.FC = () => {
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative pb-28 page-enter">
             <div className="px-5 pt-5 flex items-start justify-between">
                 <div>
+                    <button
+                        type="button"
+                        className="text-[11px] text-zen-text-light underline min-h-[32px] -mt-1 mb-1"
+                        onClick={async () => {
+                            try {
+                                if (trip?.id) await SupabaseService.releaseMyIdentity(trip.id);
+                            } catch (err) {
+                                console.error(err);
+                            }
+                            await supabase.auth.signOut();
+                        }}
+                    >
+                        登出重選
+                    </button>
                     <h1 className="font-serif text-[1.7rem] leading-tight">早安，{greetName}</h1>
                     <p className="text-xs text-zen-text-light mt-1">{todayLabel}</p>
                 </div>

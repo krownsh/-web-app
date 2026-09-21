@@ -31,7 +31,25 @@ function mapItinerary(row: any): ItineraryItem {
 }
 
 export const SupabaseService = {
-    async getMyTrips(): Promise<Trip[]> {
+    async getPersonaWall() {
+        const { data, error } = await supabase.rpc('zentravel_manila_persona_wall');
+        if (error) throw error;
+        return (data || []) as {
+            trip_id: string;
+            face_id: string;
+            display_name: string;
+            photo_url: string | null;
+            kind: 'traveler' | 'guest';
+            exclusive: boolean;
+            claimed: boolean;
+            sort_order: number;
+        }[];
+    },
+
+    async releaseMyIdentity(tripId: string) {
+        const { error } = await supabase.rpc('zentravel_release_my_identity', { p_trip_id: tripId });
+        if (error) throw error;
+    },
         const { data, error } = await supabase
             .from('zentravel_trips')
             .select('*')
