@@ -61,10 +61,14 @@ export const ClaimTravelerScreen: React.FC<{ tripId: string; onClaimed: () => vo
             if (signInErr) throw signInErr;
             await enrollThisApp();
             await SupabaseService.joinThisAppTrip();
-            if (face.kind === 'guest') {
-                await SupabaseService.claimGuestPersona(tripId, face.id);
-            } else {
-                await SupabaseService.claimTraveler(tripId, face.id);
+            try {
+                if (face.kind === 'guest') {
+                    await SupabaseService.claimGuestPersona(tripId, face.id);
+                } else {
+                    await SupabaseService.claimTraveler(tripId, face.id);
+                }
+            } catch (claimErr: any) {
+                if (!/already claimed/i.test(claimErr.message || '')) throw claimErr;
             }
             if (data.session) applySession(data.session);
             setPendingFace(null);
