@@ -18,6 +18,7 @@ BEGIN
     RAISE EXCEPTION 'manila-2026-09 trip not found';
   END IF;
 
+  DELETE FROM public.zentravel_game_devil_photo_votes WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_game_devil_photos WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_game_guesses WHERE trip_id = v_trip;
   DELETE FROM public.zentravel_game_wishes WHERE trip_id = v_trip;

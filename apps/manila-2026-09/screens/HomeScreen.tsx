@@ -8,14 +8,16 @@ import { currencyMeta, displayTripTitle, weatherDescFromCode, weatherPlace, reso
 import { BottomSheet } from '../components/ui/bottom-sheet';
 import { CinemaHero } from '../components/CinemaHero';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
-import { scatterByUploader } from '../lib/scatterByUploader';
-import { DevilPhotoRail } from '../components/DevilPhotoRail';
+import { DevilPhotoLeaderboard, DevilPhotoVote, DevilLeaderboardPhoto } from '../components/DevilPhotoLeaderboard';
+import { toast } from 'sonner';
 
 export const HomeScreen: React.FC = () => {
     const [travelers, setTravelers] = useState<Traveler[]>([]);
     const [travelerIndex, setTravelerIndex] = useState(0);
     const travelerScrollRef = useRef<HTMLDivElement>(null);
-    const [devilPhotos, setDevilPhotos] = useState<{ id: string; url: string }[]>([]);
+    const [devilPhotos, setDevilPhotos] = useState<DevilLeaderboardPhoto[]>([]);
+    const [devilVotes, setDevilVotes] = useState<DevilPhotoVote[]>([]);
+    const [votingPhoto, setVotingPhoto] = useState(false);
     const [showSOSModal, setShowSOSModal] = useState(false);
     const [showTranslateModal, setShowTranslateModal] = useState(false);
 
@@ -39,25 +41,52 @@ export const HomeScreen: React.FC = () => {
                 console.error(err);
                 setTravelers([]);
             });
-        SupabaseService.getDevilPhotos(trip.id)
-            .then(async (rows) => {
-                const scattered = scatterByUploader(rows);
+        Promise.all([SupabaseService.getDevilPhotos(trip.id), SupabaseService.getDevilPhotoVotes(trip.id)])
+            .then(async ([rows, voteRows]) => {
                 const signed = await Promise.all(
-                    scattered.map(async (p) => ({
+                    rows.map(async (p) => ({
                         id: p.id,
                         url: await SupabaseService.signedGamePhoto(p.storage_path),
+                        created_at: p.created_at,
                     }))
                 );
                 setDevilPhotos(signed);
+                setDevilVotes(voteRows);
             })
             .catch((err) => {
                 console.error(err);
                 setDevilPhotos([]);
+                setDevilVotes([]);
             });
     }, [trip?.id]);
 
     const money = currencyMeta(trip?.currency);
     const placeLabel = weatherPlace(trip);
+
+    const voteUglyPhoto = async (photoId: string) => {
+        if (!trip?.id || !myUserId || votingPhoto) return;
+        const previous = devilVotes;
+        const mine: DevilPhotoVote = {
+            photo_id: photoId,
+            user_id: myUserId,
+            display_name: gameClaim?.display_name || '我',
+            photo_url: gameClaim?.photo_url || null,
+            kind: gameClaim?.kind || 'unknown',
+        };
+        setDevilVotes([...previous.filter((v) => v.user_id !== myUserId), mine]);
+        setVotingPhoto(true);
+        try {
+            await SupabaseService.voteDevilPhoto(trip.id, photoId);
+            const fresh = await SupabaseService.getDevilPhotoVotes(trip.id);
+            setDevilVotes(fresh);
+        } catch (err) {
+            console.error(err);
+            setDevilVotes(previous);
+            toast('投票失敗，請再試一次');
+        } finally {
+            setVotingPhoto(false);
+        }
+    };
 
     const [liveRate, setLiveRate] = useState(Number(trip?.exchange_rate) || 1);
     const [foreignAmount, setForeignAmount] = useState('');
@@ -637,8 +666,15 @@ export const HomeScreen: React.FC = () => {
                     <div>
                         <div className="flex items-center justify-between px-1 mb-2">
                             <h3 className="text-sm font-medium">醜照蒐集站</h3>
+                            <p className="text-[10px] text-zen-text-light">團員與訪客都能投，隨時可改投</p>
                         </div>
-                        <DevilPhotoRail photos={devilPhotos} />
+                        <DevilPhotoLeaderboard
+                            photos={devilPhotos}
+                            votes={devilVotes}
+                            myUserId={myUserId}
+                            voting={votingPhoto}
+                            onVote={(photoId) => void voteUglyPhoto(photoId)}
+                        />
                     </div>
                 )}
 

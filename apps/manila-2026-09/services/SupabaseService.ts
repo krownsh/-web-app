@@ -392,6 +392,26 @@ export const SupabaseService = {
         return (data || []) as { id: string; target_id: string; uploader_id: string; storage_path: string; created_at: string }[];
     },
 
+    async getDevilPhotoVotes(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_devil_photo_votes', { p_trip_id: tripId });
+        if (error) throw error;
+        return (data || []) as {
+            photo_id: string;
+            user_id: string;
+            display_name: string;
+            photo_url: string | null;
+            kind: string;
+        }[];
+    },
+
+    async voteDevilPhoto(tripId: string, photoId: string) {
+        const { error } = await supabase.rpc('zentravel_vote_devil_photo', {
+            p_trip_id: tripId,
+            p_photo_id: photoId,
+        });
+        if (error) throw error;
+    },
+
     async signedGamePhoto(path: string) {
         const { data, error } = await supabase.storage.from('zentravel-game-photos').createSignedUrl(path, 3600);
         if (error) throw error;
