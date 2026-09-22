@@ -69,7 +69,7 @@ export const CinemaHeroLandscape: React.FC<CinemaHeroLandscapeProps> = ({ tripTi
         loop
         autoPlay
         playsInline
-        preload="auto"
+        preload="metadata"
         onLoadedMetadata={(e) => {
           e.currentTarget.muted = true;
           e.currentTarget.volume = 0;

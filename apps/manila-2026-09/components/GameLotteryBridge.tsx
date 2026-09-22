@@ -113,7 +113,7 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
                 loop={false}
                 muted
                 playsInline
-                preload="auto"
+                preload="metadata"
                 onLoadedMetadata={(e) => {
                     e.currentTarget.loop = false;
                     e.currentTarget.muted = true;

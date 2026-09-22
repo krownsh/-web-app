@@ -116,6 +116,7 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
                                                 <img
                                                     src={travelerPhotoSrc(member.photoUrl)}
                                                     alt=""
+                                                    decoding="async"
                                                     className="h-full w-auto max-w-full object-contain bg-transparent"
                                                 />
                                             ) : (

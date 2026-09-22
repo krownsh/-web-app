@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 
 const MOSAIC_FACES = [
-    '/travelers/meihui.png',
-    '/travelers/zhihao.png',
-    '/travelers/haru.png',
-    '/travelers/farong.png',
-    '/travelers/zichen.png',
-    '/travelers/junxuan.png',
-    '/travelers/weishao.png',
-    '/travelers/yuxin.png',
-    '/travelers/chenghong.png',
-    '/guests/a.png',
-    '/guests/b.png',
-    '/guests/c.png',
-    '/guests/d.png',
+    '/travelers/meihui.webp',
+    '/travelers/zhihao.webp',
+    '/travelers/haru.webp',
+    '/travelers/farong.webp',
+    '/travelers/zichen.webp',
+    '/travelers/junxuan.webp',
+    '/travelers/weishao.webp',
+    '/travelers/yuxin.webp',
+    '/travelers/chenghong.webp',
+    '/guests/a.webp',
+    '/guests/b.webp',
+    '/guests/c.webp',
+    '/guests/d.webp',
 ];
 
 const WALLPAPER_COLS = 6;
-const WALLPAPER_ROWS = 12;
+const WALLPAPER_ROWS = 6;
 
 function shuffle<T>(items: T[]): T[] {
     const next = [...items];
@@ -58,6 +58,8 @@ export function FaceMosaic({ children }: { children: React.ReactNode }) {
                         key={`${src}-${i}`}
                         src={src}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         style={wallpaperStyle(i)}
                         className="size-[4.5rem] justify-self-center object-contain"
                     />

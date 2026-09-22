@@ -555,7 +555,7 @@ export const HomeScreen: React.FC = () => {
                     <button type="button" onClick={() => setIsMeetingModalOpen(true)} className="text-[11px] text-cta mt-1 min-h-[32px]">設定集合點</button>
                     )}
                 </div>
-                <img src={activeItem?.image || '/spots/intramuros.png'} alt="" className="w-24 h-24 rounded-xl object-cover shrink-0 bg-zen-mist" />
+                <img src={activeItem?.image || '/spots/intramuros.webp'} alt="" className="w-24 h-24 rounded-xl object-cover shrink-0 bg-zen-mist" />
             </div>
 
             {wheelData.length > 0 && (

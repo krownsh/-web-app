@@ -93,7 +93,7 @@ export const CinemaHeroPortrait: React.FC<CinemaHeroPortraitProps> = ({ tripTitl
           loop
           autoPlay
           playsInline
-          preload="auto"
+          preload="metadata"
           onLoadedMetadata={(e) => {
             e.currentTarget.muted = true;
             e.currentTarget.volume = 0;
