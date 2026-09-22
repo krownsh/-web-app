@@ -24,6 +24,7 @@ export const HomeScreen: React.FC = () => {
     const [showTranslateModal, setShowTranslateModal] = useState(false);
     const [showLogoutChallenge, setShowLogoutChallenge] = useState(false);
     const [logoutCodeValid, setLogoutCodeValid] = useState(false);
+    const [logoutCodeError, setLogoutCodeError] = useState('');
     const logoutDialogRef = useRef<HTMLDialogElement>(null);
 
 
@@ -494,7 +495,11 @@ export const HomeScreen: React.FC = () => {
     };
 
     const completeLogout = async () => {
-        if (!logoutCodeValid) return;
+        if (!logoutCodeValid) {
+            setLogoutCodeError('排列錯誤');
+            return;
+        }
+        setLogoutCodeError('');
         try {
             if (trip?.id) await SupabaseService.releaseMyIdentity(trip.id);
         } catch (err) {
@@ -519,13 +524,15 @@ export const HomeScreen: React.FC = () => {
                 <div>
                     <button
                         type="button"
-                        className="text-[11px] text-zen-text-light underline min-h-[32px] -mt-1 mb-1"
+                        aria-label="登出重選"
+                        className="mb-1 -ml-1 grid size-10 place-items-center text-zen-text-light"
                         onClick={() => {
                             setLogoutCodeValid(false);
+                            setLogoutCodeError('');
                             setShowLogoutChallenge(true);
                         }}
                     >
-                        登出重選
+                        <span className="material-symbols-outlined text-[22px]">logout</span>
                     </button>
                     <h1 className="font-serif text-[1.7rem] leading-tight">早安，{greetName}</h1>
                     <p className="text-xs text-zen-text-light mt-1">{todayLabel}</p>
@@ -548,7 +555,7 @@ export const HomeScreen: React.FC = () => {
                     <button type="button" onClick={() => setIsMeetingModalOpen(true)} className="text-[11px] text-cta mt-1 min-h-[32px]">設定集合點</button>
                     )}
                 </div>
-                <img src={activeItem?.image || '/spots/intramuros.png'} alt="" className="w-24 h-24 rounded-xl object-cover shrink-0 bg-zen-mist" />
+                <img src={activeItem?.image || '/spots/intramuros.webp'} alt="" className="w-24 h-24 rounded-xl object-cover shrink-0 bg-zen-mist" />
             </div>
 
             {wheelData.length > 0 && (
@@ -1106,39 +1113,36 @@ export const HomeScreen: React.FC = () => {
                     ref={logoutDialogRef}
                     aria-labelledby="logout-challenge-title"
                     onClose={() => setShowLogoutChallenge(false)}
-                    className="m-auto w-[calc(100%-2.5rem)] max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl backdrop:bg-zen-dark/70 backdrop:backdrop-blur-sm animate-scale-up"
+                    className="m-auto w-[calc(100%-2.5rem)] max-w-sm overflow-hidden rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl backdrop:bg-zen-dark/70"
                 >
-                    <section>
-                        <p className="text-[10px] font-bold tracking-[0.3em] text-white/60">IDENTITY CHECK</p>
-                        <h2 id="logout-challenge-title" className="mt-2 font-serif text-2xl">確認登出</h2>
-                        <p className="mt-2 text-sm leading-relaxed text-white/70">
-                            請轉出團員代碼後再登出，避免誤觸或被他人重選身分。
-                        </p>
-                        <div className="mt-5">
-                            <AvatarCodeWheel
-                                sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
-                                travelers={travelers}
-                                onValidChange={setLogoutCodeValid}
-                            />
-                        </div>
-                        <div className="mt-6 flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowLogoutChallenge(false)}
-                                className="flex-1 rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
-                            >
-                                取消
-                            </button>
-                            <button
-                                type="button"
-                                disabled={!logoutCodeValid}
-                                onClick={() => void completeLogout()}
-                                className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45"
-                            >
-                                確認登出
-                            </button>
-                        </div>
-                    </section>
+                    <h2 id="logout-challenge-title" className="font-serif text-2xl">確認登出</h2>
+                    <div className="mt-5">
+                        <AvatarCodeWheel
+                            sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
+                            travelers={travelers}
+                            onValidChange={(valid) => {
+                                setLogoutCodeValid(valid);
+                                if (valid) setLogoutCodeError('');
+                            }}
+                        />
+                    </div>
+                    {logoutCodeError && <p className="mt-3 w-full text-center text-base font-bold text-cta">{logoutCodeError}</p>}
+                    <div className="mt-6 flex flex-col gap-3">
+                        <button
+                            type="button"
+                            onClick={() => void completeLogout()}
+                            className="w-full rounded-full bg-cta py-4 text-lg font-bold text-white"
+                        >
+                            確認登出
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowLogoutChallenge(false)}
+                            className="w-full rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
+                        >
+                            取消
+                        </button>
+                    </div>
                 </dialog>
             )}
         </div>

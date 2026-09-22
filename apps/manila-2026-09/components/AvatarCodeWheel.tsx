@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import type { Traveler } from '../types';
 
 export type CodeMember = string;
 
-const AVATAR_COLORS = [
-    'from-sky-400 to-blue-600',
-    'from-violet-400 to-purple-600',
-    'from-emerald-400 to-teal-600',
-    'from-rose-400 to-pink-600',
-    'from-amber-400 to-orange-600',
-    'from-cyan-400 to-blue-600',
-    'from-fuchsia-400 to-pink-600',
-    'from-lime-400 to-green-600',
+type Member = {
+    name: string;
+    photoUrl: string | null;
+};
+
+const CELL = 112;
+const DEFAULT_STARTS = ['靜瑩', '彥文', '宇庭', '庭宇'];
+const GUEST_FACES: Member[] = [
+    { name: '彥文', photoUrl: '/guests/a.png' },
+    { name: '靜瑩', photoUrl: '/guests/b.png' },
+    { name: '宇庭', photoUrl: '/guests/c.png' },
+    { name: '庭宇', photoUrl: '/guests/d.png' },
 ];
 
 type Props = {
@@ -21,98 +24,129 @@ type Props = {
     onValidChange: (valid: boolean) => void;
 };
 
+function wrapIndex(length: number, value: number) {
+    return ((value % length) + length) % length;
+}
+
 export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidChange }) => {
-    const [positions, setPositions] = useState<number[]>(() => Array(sequence.length).fill(0));
-    const [spinningIndex, setSpinningIndex] = useState<number | null>(null);
-    const members = travelers.map((traveler) => ({
-            name: traveler.display_name,
-            photoUrl: traveler.photo_url,
-        }));
+    const [offsets, setOffsets] = useState<number[]>(() => Array(sequence.length).fill(0));
+    const [scrolls, setScrolls] = useState<number[]>(() => Array(sequence.length).fill(0));
+    const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const members: Member[] = (() => {
+        const fromApi = travelers
+            .filter((traveler) => traveler.display_name !== 'Haru' && traveler.display_name !== '共用訪客')
+            .map((traveler) => ({
+                name: traveler.display_name,
+                photoUrl: traveler.photo_url,
+            }));
+        const seen = new Set(fromApi.map((member) => member.name));
+        return [...fromApi, ...GUEST_FACES.filter((guest) => !seen.has(guest.name))];
+    })();
+    const loop = [...members, ...members, ...members];
+
+    const reportValid = useCallback((values: number[]) => {
+        if (members.length === 0) {
+            onValidChange(false);
+            return;
+        }
+        onValidChange(values.every((offset, index) => members[wrapIndex(members.length, offset)]?.name === sequence[index]));
+    }, [members, onValidChange, sequence]);
 
     useEffect(() => {
-        if (members.length === 0) onValidChange(false);
-    }, [members.length, onValidChange]);
+        if (members.length === 0) {
+            onValidChange(false);
+            return;
+        }
+        const zeros = sequence.map((_, index) => {
+            const startName = DEFAULT_STARTS[index];
+            const found = members.findIndex((member) => member.name === startName);
+            return found >= 0 ? found : 0;
+        });
+        const startCopy = members.length * CELL;
+        reelRefs.current.forEach((reel, index) => {
+            if (reel) reel.scrollLeft = startCopy + zeros[index] * CELL;
+        });
+        setOffsets(zeros);
+        setScrolls(zeros.map((offset) => startCopy + offset * CELL));
+        reportValid(zeros);
+    }, [members.length, onValidChange, reportValid, sequence.length]);
 
-    if (members.length === 0) {
-        return (
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-4 text-center text-xs text-white/70 backdrop-blur-sm">
-                正在載入全體團員頭像…
-            </div>
-        );
-    }
-
-    const advanceWheel = (index: number) => {
-        if (spinningIndex !== null) return;
-        setSpinningIndex(index);
-
-        window.setTimeout(() => {
-            setPositions((current) => {
-                const next = [...current];
-                next[index] += 1;
-                onValidChange(next.every((position, valueIndex) => (
-                    members[position % members.length]?.name === sequence[valueIndex]
-                )));
-                return next;
-            });
-            setSpinningIndex(null);
-        }, 300);
+    const syncReel = (index: number, scrollLeft: number) => {
+        if (members.length === 0) return;
+        const span = members.length * CELL;
+        const raw = Math.round(scrollLeft / CELL);
+        const memberIndex = wrapIndex(members.length, raw);
+        setScrolls((current) => {
+            if (current[index] === scrollLeft) return current;
+            const next = [...current];
+            next[index] = scrollLeft;
+            return next;
+        });
+        setOffsets((current) => {
+            if (current[index] === memberIndex) return current;
+            const next = [...current];
+            next[index] = memberIndex;
+            reportValid(next);
+            return next;
+        });
+        const reel = reelRefs.current[index];
+        if (!reel) return;
+        if (scrollLeft < span * 0.5) reel.scrollLeft = scrollLeft + span;
+        if (scrollLeft > span * 2.5) reel.scrollLeft = scrollLeft - span;
     };
 
-    const memberAt = (position: number) => {
-        const normalized = ((position % members.length) + members.length) % members.length;
-        return members[normalized];
-    };
+    if (members.length === 0) return null;
 
     return (
-        <div className="rounded-2xl border border-white/20 bg-white/10 p-2.5 backdrop-blur-sm">
-            <div className="rounded-xl border-2 border-cta/80 bg-[#fff9e9] p-1.5 shadow-[inset_0_0_0_2px_rgba(255,255,255,.8)]">
-                <div className="flex flex-col gap-1">
-                    {positions.map((position, index) => {
-                        const current = memberAt(position);
-                        const displayedMembers = [
-                            memberAt(position - 1),
-                            current,
-                            memberAt(position + 1),
-                            memberAt(position + 2),
-                        ];
-
-                        return (
-                            <div key={index} className="flex items-center gap-2">
-                                <span className="w-4 text-center text-[10px] font-bold text-cta">{index + 1}</span>
-                                <button
-                                    type="button"
-                                    disabled={spinningIndex !== null}
-                                    onClick={() => advanceWheel(index)}
-                                    aria-label={`第 ${index + 1} 格，目前是${current.name}，點擊將頭像往上轉動`}
-                                    className="relative h-11 min-w-0 flex-1 overflow-hidden rounded-lg border border-[#d9c891] bg-white shadow-inner disabled:cursor-wait"
-                                >
-                                    <div className="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-6 -translate-y-1/2 border-y border-cta/50 bg-cta/5" />
+        <div className="flex flex-col gap-4">
+            {sequence.map((_, index) => {
+                const centerPos = scrolls[index] / CELL;
+                return (
+                    <div key={index} className="relative h-32 overflow-hidden overscroll-contain">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-zen-dark to-transparent" />
+                        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-zen-dark to-transparent" />
+                        <div
+                            ref={(node) => { reelRefs.current[index] = node; }}
+                            onScroll={(event) => syncReel(index, event.currentTarget.scrollLeft)}
+                            className="flex h-32 items-center overflow-x-auto overflow-y-hidden snap-x snap-mandatory overscroll-x-contain no-scrollbar px-[calc(50%-56px)]"
+                            style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' }}
+                        >
+                            {loop.map((member, memberIndex) => {
+                                const distance = Math.abs(memberIndex - centerPos);
+                                const isCenter = distance < 0.35;
+                                const isSide = distance < 1.35;
+                                return (
                                     <div
-                                        className={`relative flex flex-col items-center ${spinningIndex === index ? 'transition-transform duration-300 ease-out' : ''}`}
-                                        style={{ transform: `translateY(${spinningIndex === index ? -38 : -14}px)` }}
+                                        key={`${index}-${member.name}-${memberIndex}`}
+                                        className="grid h-32 w-[112px] shrink-0 snap-center place-items-center"
                                     >
-                                        {displayedMembers.map((member, memberIndex) => {
-                                            return (
-                                                <span
-                                                    key={`${member.name}-${memberIndex}`}
-                                                    className={`grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br ${AVATAR_COLORS[(position + memberIndex - 1 + AVATAR_COLORS.length) % AVATAR_COLORS.length]} text-[9px] font-bold text-white shadow-sm ${memberIndex === 1 ? 'ring-1 ring-cta/60' : 'opacity-45'}`}
-                                                >
-                                                    {member.photoUrl ? (
-                                                        <img src={travelerPhotoSrc(member.photoUrl)} alt="" className="size-full object-cover" />
-                                                    ) : (
-                                                        member.name.slice(0, 1)
-                                                    )}
-                                                </span>
-                                            );
-                                        })}
+                                        <div
+                                            className={`grid place-items-center bg-transparent transition-[transform,filter,opacity] duration-150 ${
+                                                isCenter
+                                                    ? 'h-28 w-28 scale-110 drop-shadow-[0_12px_18px_rgba(0,0,0,.45)]'
+                                                    : isSide
+                                                        ? 'h-[4.5rem] w-[4.5rem] scale-90 opacity-50 blur-[2px]'
+                                                        : 'h-12 w-12 scale-75 opacity-0'
+                                            }`}
+                                        >
+                                            {member.photoUrl ? (
+                                                <img
+                                                    src={travelerPhotoSrc(member.photoUrl)}
+                                                    alt=""
+                                                    decoding="async"
+                                                    className="h-full w-auto max-w-full object-contain bg-transparent"
+                                                />
+                                            ) : (
+                                                <span className="text-lg font-bold">{member.name.slice(0, 1)}</span>
+                                            )}
+                                        </div>
                                     </div>
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-            <p className="mt-2 text-center text-[11px] font-medium text-white/70">點擊每格，讓頭像由下往上轉動</p>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };
