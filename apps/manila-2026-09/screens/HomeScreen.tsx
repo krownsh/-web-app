@@ -1113,10 +1113,10 @@ export const HomeScreen: React.FC = () => {
                     ref={logoutDialogRef}
                     aria-labelledby="logout-challenge-title"
                     onClose={() => setShowLogoutChallenge(false)}
-                    className="m-auto w-[calc(100%-1.5rem)] max-w-sm max-h-[min(92dvh,720px)] overflow-y-auto rounded-[1.5rem] bg-zen-dark px-4 py-5 text-white shadow-2xl backdrop:bg-zen-dark/70"
+                    className="m-auto flex w-[calc(100%-1.25rem)] max-w-sm max-h-[min(92dvh,720px)] flex-col overflow-clip rounded-[1.5rem] bg-zen-dark px-0 py-4 text-white shadow-2xl backdrop:bg-zen-dark/70"
                 >
-                    <h2 id="logout-challenge-title" className="text-center font-serif text-2xl">確認登出</h2>
-                    <div className="mt-3">
+                    <h2 id="logout-challenge-title" className="px-5 text-center font-serif text-2xl">確認登出</h2>
+                    <div className="mt-1 h-[22rem] min-h-0 w-full">
                         <AvatarCodeWheel
                             sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
                             travelers={travelers}
@@ -1126,8 +1126,8 @@ export const HomeScreen: React.FC = () => {
                             }}
                         />
                     </div>
-                    {logoutCodeError && <p className="mt-2 w-full text-center text-base font-bold text-cta">{logoutCodeError}</p>}
-                    <div className="mt-4 flex flex-col gap-2">
+                    {logoutCodeError && <p className="mt-2 px-5 w-full text-center text-base font-bold text-cta">{logoutCodeError}</p>}
+                    <div className="mt-3 flex flex-col gap-2 px-5">
                         <button
                             type="button"
                             onClick={() => void completeLogout()}

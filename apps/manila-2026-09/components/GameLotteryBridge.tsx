@@ -131,12 +131,13 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
 
             <div
                 ref={curtainRef}
-                className={`absolute inset-0 z-10 flex flex-col bg-zen-dark px-5 pt-6 pb-28 transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`absolute inset-0 z-10 grid min-h-0 bg-zen-dark pt-3 pb-[7.25rem] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     curtainUp ? '-translate-y-full' : 'translate-y-0'
                 }`}
+                style={{ gridTemplateRows: 'auto minmax(0, 1fr) auto' }}
             >
-                <h1 className="shrink-0 text-center font-serif text-3xl">抽籤</h1>
-                <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+                <h1 className="px-5 pb-1 text-center font-serif text-2xl leading-none">抽籤</h1>
+                <div className="min-h-0 min-w-0 w-full">
                     <AvatarCodeWheel
                         sequence={['韋劭', '韋劭', '郁欣', '郁欣'] as CodeMember[]}
                         travelers={travelers}
@@ -146,23 +147,25 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
                         }}
                     />
                 </div>
-                <button
-                    type="button"
-                    disabled={busy || curtainUp}
-                    onClick={() => {
-                        if (!lotteryCodeValid) {
-                            setCodeError('排列錯誤');
-                            return;
-                        }
-                        setCodeError('');
-                        setCurtainUp(true);
-                    }}
-                    className="mt-3 w-full shrink-0 py-4 rounded-full bg-cta text-white font-bold text-lg disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                    {busy ? '抽籤中…' : '開始抽籤'}
-                </button>
-                {codeError && !curtainUp && <p className="mt-2 shrink-0 text-center text-base font-bold text-cta">{codeError}</p>}
-                {loadError && !result && <p className="mt-2 shrink-0 text-center text-sm text-cta">{loadError}</p>}
+                <div className="px-5 pt-2">
+                    <button
+                        type="button"
+                        disabled={busy || curtainUp}
+                        onClick={() => {
+                            if (!lotteryCodeValid) {
+                                setCodeError('排列錯誤');
+                                return;
+                            }
+                            setCodeError('');
+                            setCurtainUp(true);
+                        }}
+                        className="w-full py-4 rounded-full bg-cta text-white font-bold text-lg disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                        {busy ? '抽籤中…' : '開始抽籤'}
+                    </button>
+                    {codeError && !curtainUp && <p className="mt-2 text-center text-base font-bold text-cta">{codeError}</p>}
+                    {loadError && !result && <p className="mt-2 text-center text-sm text-cta">{loadError}</p>}
+                </div>
             </div>
 
             {result && (

@@ -9,7 +9,6 @@ type Member = {
     photoUrl: string | null;
 };
 
-const CELL = 88;
 const DEFAULT_STARTS = ['靜瑩', '彥文', '宇庭', '庭宇'];
 const GUEST_FACES: Member[] = [
     { name: '彥文', photoUrl: '/guests/a.png' },
@@ -50,24 +49,27 @@ const SnapReel: React.FC<{
     const xRef = useRef(0);
     const indexRef = useRef(0);
     const widthRef = useRef(0);
+    const heightRef = useRef(0);
+    const cellRef = useRef(0);
     const dragRef = useRef<{ pointer: number; startX: number; origin: number; lastX: number; lastT: number; velocity: number } | null>(null);
     const onIndexChangeRef = useRef(onIndexChange);
     onIndexChangeRef.current = onIndexChange;
 
-    const span = members.length * CELL;
+    const metrics = () => {
+        const width = widthRef.current || viewportRef.current?.clientWidth || 0;
+        const cell = cellRef.current || width / 3;
+        return { width, cell };
+    };
 
-    const xForLoopIndex = useCallback((loopIndex: number, width: number) => (
-        width / 2 - (loopIndex + 0.5) * CELL
-    ), []);
+    const xForLoopIndex = (loopIndex: number, width: number, cell: number) => (
+        width / 2 - (loopIndex + 0.5) * cell
+    );
 
-    const loopIndexFromX = useCallback((x: number, width: number) => (
-        Math.round((width / 2 - x) / CELL - 0.5)
-    ), []);
-
-    const wrapToMiddle = useCallback((x: number, width: number) => {
-        if (members.length === 0) return x;
+    const wrapToMiddle = (x: number, width: number, cell: number) => {
+        if (members.length === 0 || cell <= 0) return x;
+        const span = members.length * cell;
         let next = x;
-        let i = (width / 2 - next) / CELL - 0.5;
+        let i = (width / 2 - next) / cell - 0.5;
         while (i < members.length) {
             next -= span;
             i += members.length;
@@ -77,30 +79,36 @@ const SnapReel: React.FC<{
             i -= members.length;
         }
         return next;
-    }, [members.length, span]);
+    };
 
-    const paint = useCallback((x: number, animate: boolean) => {
+    const paint = (x: number, animate: boolean) => {
         const viewport = viewportRef.current;
         const strip = stripRef.current;
         if (!viewport || !strip) return;
         const width = viewport.clientWidth || 1;
+        const height = viewport.clientHeight || 1;
+        const cell = cellRef.current || width / 3;
+        const size = Math.max(48, Math.min(cell, height) * 0.92);
         strip.style.transition = animate ? 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
         strip.style.transform = `translate3d(${x}px,0,0)`;
         Array.from(strip.children).forEach((node, itemIndex) => {
             const el = node as HTMLElement;
-            const center = x + (itemIndex + 0.5) * CELL;
-            const dist = Math.abs(center - width / 2) / CELL;
+            el.style.width = `${cell}px`;
+            const center = x + (itemIndex + 0.5) * cell;
+            const dist = Math.abs(center - width / 2) / cell;
             const face = el.firstElementChild as HTMLElement | null;
             if (!face) return;
+            face.style.width = `${size}px`;
+            face.style.height = `${size}px`;
             if (dist < 0.45) {
-                face.style.transform = 'scale(1.12)';
+                face.style.transform = 'scale(1.06)';
                 face.style.opacity = '1';
                 face.style.filter = 'blur(0px)';
                 face.style.zIndex = '3';
-            } else if (dist < 1.35) {
+            } else if (dist < 1.05) {
                 face.style.transform = 'scale(0.82)';
-                face.style.opacity = '0.45';
-                face.style.filter = 'blur(1.6px)';
+                face.style.opacity = '0.48';
+                face.style.filter = 'blur(1.4px)';
                 face.style.zIndex = '1';
             } else {
                 face.style.transform = 'scale(0.7)';
@@ -109,61 +117,66 @@ const SnapReel: React.FC<{
                 face.style.zIndex = '0';
             }
         });
-    }, []);
+    };
 
-    const settle = useCallback((x: number, velocity: number) => {
-        const width = widthRef.current || viewportRef.current?.clientWidth || 0;
-        if (width < 8 || members.length === 0) return;
+    const settle = (x: number, velocity: number) => {
+        const { width, cell } = metrics();
+        if (width < 8 || cell <= 0 || members.length === 0) return;
         const projected = x + velocity * 120;
-        const raw = loopIndexFromX(projected, width);
+        const raw = Math.round((width / 2 - projected) / cell - 0.5);
         const loopIndex = Math.max(0, Math.min(members.length * 3 - 1, raw));
-        const snapped = xForLoopIndex(loopIndex, width);
+        const snapped = xForLoopIndex(loopIndex, width, cell);
         xRef.current = snapped;
         indexRef.current = wrapIndex(members.length, loopIndex);
         paint(snapped, true);
         onIndexChangeRef.current(indexRef.current);
         window.setTimeout(() => {
-            const recentered = wrapToMiddle(xRef.current, width);
+            const recentered = wrapToMiddle(xRef.current, width, cell);
             if (recentered === xRef.current) return;
             xRef.current = recentered;
             paint(recentered, false);
         }, 340);
-    }, [loopIndexFromX, members.length, paint, wrapToMiddle, xForLoopIndex]);
+    };
 
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport || members.length === 0) return;
 
-        const applyStart = (width: number) => {
+        const applyStart = (width: number, cell: number) => {
             const found = members.findIndex((member) => member.name === startName);
             const startIndex = found >= 0 ? found : 0;
             indexRef.current = startIndex;
-            const x = xForLoopIndex(members.length + startIndex, width);
+            const x = xForLoopIndex(members.length + startIndex, width, cell);
             xRef.current = x;
             paint(x, false);
             onIndexChangeRef.current(startIndex);
         };
 
-        const syncWidth = () => {
+        const syncSize = () => {
             const width = viewport.clientWidth;
+            const height = viewport.clientHeight;
             if (width < 8) return;
-            if (widthRef.current < 8) {
-                widthRef.current = width;
-                applyStart(width);
+            const cell = width / 3;
+            const first = widthRef.current < 8;
+            const changed = width !== widthRef.current || height !== heightRef.current || cell !== cellRef.current;
+            widthRef.current = width;
+            heightRef.current = height;
+            cellRef.current = cell;
+            if (first) {
+                applyStart(width, cell);
                 return;
             }
-            if (width === widthRef.current) return;
-            widthRef.current = width;
-            const x = xForLoopIndex(members.length + indexRef.current, width);
+            if (!changed) return;
+            const x = xForLoopIndex(members.length + indexRef.current, width, cell);
             xRef.current = x;
             paint(x, false);
         };
 
-        syncWidth();
-        const observer = new ResizeObserver(syncWidth);
+        syncSize();
+        const observer = new ResizeObserver(syncSize);
         observer.observe(viewport);
         return () => observer.disconnect();
-    }, [members, paint, startName, xForLoopIndex]);
+    }, [members, startName]);
 
     const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
         event.preventDefault();
@@ -182,10 +195,10 @@ const SnapReel: React.FC<{
     const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current;
         if (!drag || drag.pointer !== event.pointerId) return;
+        const { width, cell } = metrics();
         const now = performance.now();
         const next = drag.origin + (event.clientX - drag.startX);
-        const width = widthRef.current || viewportRef.current?.clientWidth || 1;
-        const wrapped = wrapToMiddle(next, width);
+        const wrapped = wrapToMiddle(next, width, cell);
         if (wrapped !== next) drag.origin += wrapped - next;
         const dt = Math.max(now - drag.lastT, 1);
         drag.velocity = (event.clientX - drag.lastX) / dt;
@@ -205,28 +218,28 @@ const SnapReel: React.FC<{
     return (
         <div
             ref={viewportRef}
-            className="relative h-[5.5rem] overflow-hidden overscroll-contain touch-none"
+            className="relative min-h-0 min-w-0 overflow-clip overscroll-contain touch-none"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
         >
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-zen-dark to-transparent" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-zen-dark to-transparent" />
-            <div ref={stripRef} className="absolute inset-y-0 left-0 flex items-center will-change-transform">
+            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1/6 bg-gradient-to-r from-zen-dark to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-1/6 bg-gradient-to-l from-zen-dark to-transparent" />
+            <div ref={stripRef} className="absolute inset-y-0 left-0 flex h-full items-center will-change-transform">
                 {loop.map((member, memberIndex) => (
                     <div
                         key={`${member.name}-${memberIndex}`}
-                        className="grid h-[5.5rem] w-[88px] shrink-0 place-items-center"
+                        className="grid h-full shrink-0 place-items-center"
                     >
-                        <div className="grid h-[4.75rem] w-[4.75rem] place-items-center bg-transparent">
+                        <div className="grid place-items-center overflow-visible bg-transparent">
                             {member.photoUrl ? (
                                 <img
                                     src={travelerPhotoSrc(member.photoUrl)}
                                     alt=""
                                     draggable={false}
                                     decoding="async"
-                                    className="pointer-events-none h-full w-auto max-w-full object-contain bg-transparent"
+                                    className="pointer-events-none block h-full w-auto max-w-full object-contain bg-transparent"
                                 />
                             ) : (
                                 <span className="text-lg font-bold">{member.name.slice(0, 1)}</span>
@@ -254,7 +267,10 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
     if (members.length === 0) return null;
 
     return (
-        <div className="flex flex-col gap-1">
+        <div
+            className="grid h-full min-h-0 w-full"
+            style={{ gridTemplateRows: `repeat(${sequence.length}, minmax(0, 1fr))` }}
+        >
             {sequence.map((startName, index) => (
                 <SnapReel
                     key={`${startName}-${index}`}
