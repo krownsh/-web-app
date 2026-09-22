@@ -524,14 +524,15 @@ export const HomeScreen: React.FC = () => {
                 <div>
                     <button
                         type="button"
-                        className="text-[11px] text-zen-text-light underline min-h-[32px] -mt-1 mb-1"
+                        aria-label="登出重選"
+                        className="mb-1 -ml-1 grid size-10 place-items-center text-zen-text-light"
                         onClick={() => {
                             setLogoutCodeValid(false);
                             setLogoutCodeError('');
                             setShowLogoutChallenge(true);
                         }}
                     >
-                        登出重選
+                        <span className="material-symbols-outlined text-[22px]">logout</span>
                     </button>
                     <h1 className="font-serif text-[1.7rem] leading-tight">早安，{greetName}</h1>
                     <p className="text-xs text-zen-text-light mt-1">{todayLabel}</p>
