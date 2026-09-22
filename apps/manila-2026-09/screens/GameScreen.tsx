@@ -213,7 +213,7 @@ export const GameScreen: React.FC = () => {
             e.target.value = '';
             return;
         }
-        const files = Array.from(e.target.files || []);
+        const files = Array.from<File>(e.currentTarget.files ?? []);
         e.target.value = '';
         if (!files.length || !userId) return;
         setMode('devil');
