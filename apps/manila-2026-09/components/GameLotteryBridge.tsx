@@ -161,7 +161,7 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
                 >
                     {busy ? '抽籤中…' : '開始抽籤'}
                 </button>
-                {codeError && !curtainUp && <p className="mt-3 text-sm text-cta">{codeError}</p>}
+                {codeError && !curtainUp && <p className="mt-3 w-full max-w-xs text-center text-base font-bold text-cta">{codeError}</p>}
                 {loadError && !result && <p className="mt-3 text-sm text-cta">{loadError}</p>}
             </div>
 

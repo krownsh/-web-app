@@ -1125,21 +1125,21 @@ export const HomeScreen: React.FC = () => {
                             }}
                         />
                     </div>
-                    {logoutCodeError && <p className="mt-3 text-sm text-cta">{logoutCodeError}</p>}
-                    <div className="mt-6 flex gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setShowLogoutChallenge(false)}
-                            className="flex-1 rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
-                        >
-                            取消
-                        </button>
+                    {logoutCodeError && <p className="mt-3 w-full text-center text-base font-bold text-cta">{logoutCodeError}</p>}
+                    <div className="mt-6 flex flex-col gap-3">
                         <button
                             type="button"
                             onClick={() => void completeLogout()}
-                            className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold"
+                            className="w-full rounded-full bg-cta py-4 text-lg font-bold text-white"
                         >
                             確認登出
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowLogoutChallenge(false)}
+                            className="w-full rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
+                        >
+                            取消
                         </button>
                     </div>
                 </dialog>
