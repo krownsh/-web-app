@@ -1113,10 +1113,10 @@ export const HomeScreen: React.FC = () => {
                     ref={logoutDialogRef}
                     aria-labelledby="logout-challenge-title"
                     onClose={() => setShowLogoutChallenge(false)}
-                    className="m-auto w-[calc(100%-2.5rem)] max-w-sm overflow-hidden rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl backdrop:bg-zen-dark/70"
+                    className="m-auto w-[calc(100%-1.5rem)] max-w-sm max-h-[min(92dvh,720px)] overflow-y-auto rounded-[1.5rem] bg-zen-dark px-4 py-5 text-white shadow-2xl backdrop:bg-zen-dark/70"
                 >
-                    <h2 id="logout-challenge-title" className="font-serif text-2xl">確認登出</h2>
-                    <div className="mt-5">
+                    <h2 id="logout-challenge-title" className="text-center font-serif text-2xl">確認登出</h2>
+                    <div className="mt-3">
                         <AvatarCodeWheel
                             sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
                             travelers={travelers}
@@ -1126,12 +1126,12 @@ export const HomeScreen: React.FC = () => {
                             }}
                         />
                     </div>
-                    {logoutCodeError && <p className="mt-3 w-full text-center text-base font-bold text-cta">{logoutCodeError}</p>}
-                    <div className="mt-6 flex flex-col gap-3">
+                    {logoutCodeError && <p className="mt-2 w-full text-center text-base font-bold text-cta">{logoutCodeError}</p>}
+                    <div className="mt-4 flex flex-col gap-2">
                         <button
                             type="button"
                             onClick={() => void completeLogout()}
-                            className="w-full rounded-full bg-cta py-4 text-lg font-bold text-white"
+                            className="w-full rounded-full bg-cta py-3.5 text-lg font-bold text-white"
                         >
                             確認登出
                         </button>
