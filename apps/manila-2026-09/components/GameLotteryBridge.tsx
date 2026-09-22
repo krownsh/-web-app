@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
+import { AvatarCodeWheel, CodeMember } from './AvatarCodeWheel';
+import type { Traveler } from '../types';
 
 export type LotteryDraw = {
     angel_name: string;
@@ -13,6 +15,7 @@ type Props = {
     error?: string;
     onFinished: () => Promise<LotteryDraw | null>;
     onEnterGame: () => void;
+    travelers: Traveler[];
 };
 
 const LOTTERY_VIDEO = '/videos/lottery.mp4';
@@ -44,12 +47,13 @@ function ResultCard({
     );
 }
 
-export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, onEnterGame }) => {
+export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, onEnterGame, travelers }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const curtainRef = useRef<HTMLDivElement>(null);
     const [curtainUp, setCurtainUp] = useState(false);
     const [result, setResult] = useState<LotteryDraw | null>(null);
     const [loadError, setLoadError] = useState(error || '');
+    const [lotteryCodeValid, setLotteryCodeValid] = useState(false);
 
     const startedRef = useRef(false);
 
@@ -132,11 +136,18 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
             >
                 <p className="text-[10px] tracking-[0.35em] uppercase text-white/70">任務</p>
                 <h1 className="font-serif text-4xl mt-2">抽籤</h1>
+                <div className="mt-6 w-full max-w-xs">
+                    <AvatarCodeWheel
+                        sequence={['韋', '劭', '韋', '劭', '郁', '欣', '郁', '欣'] as CodeMember[]}
+                        travelers={travelers}
+                        onValidChange={setLotteryCodeValid}
+                    />
+                </div>
                 <button
                     type="button"
-                    disabled={busy || curtainUp}
+                    disabled={busy || curtainUp || !lotteryCodeValid}
                     onClick={() => setCurtainUp(true)}
-                    className="mt-8 w-full max-w-xs py-4 rounded-full bg-cta text-white font-bold text-lg"
+                    className="mt-5 w-full max-w-xs py-4 rounded-full bg-cta text-white font-bold text-lg disabled:cursor-not-allowed disabled:opacity-45"
                 >
                     {busy ? '抽籤中…' : '開始抽籤'}
                 </button>

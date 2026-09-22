@@ -60,6 +60,16 @@ export const GameScreen: React.FC = () => {
 
     const pool = travelers.filter((t) => t.display_name !== 'Haru');
 
+    useEffect(() => {
+        if (!tripId) return;
+        SupabaseService.getTravelers(tripId)
+            .then(setTravelers)
+            .catch((err) => {
+                console.error(err);
+                setTravelers([]);
+            });
+    }, [tripId]);
+
     const guestDraw = (): Draw | null => {
         if (!gameClaim) return null;
         return {
@@ -203,7 +213,7 @@ export const GameScreen: React.FC = () => {
             e.target.value = '';
             return;
         }
-        const files = Array.from(e.target.files || []);
+        const files = Array.from<File>(e.currentTarget.files ?? []);
         e.target.value = '';
         if (!files.length || !userId) return;
         setMode('devil');
@@ -256,6 +266,7 @@ export const GameScreen: React.FC = () => {
                         markLotteryPlayed();
                         setLotteryPlayed(true);
                     }}
+                    travelers={travelers}
                 />
             </div>
         );
