@@ -24,6 +24,7 @@ export const HomeScreen: React.FC = () => {
     const [showTranslateModal, setShowTranslateModal] = useState(false);
     const [showLogoutChallenge, setShowLogoutChallenge] = useState(false);
     const [logoutCodeValid, setLogoutCodeValid] = useState(false);
+    const [logoutCodeError, setLogoutCodeError] = useState('');
     const logoutDialogRef = useRef<HTMLDialogElement>(null);
 
 
@@ -494,7 +495,11 @@ export const HomeScreen: React.FC = () => {
     };
 
     const completeLogout = async () => {
-        if (!logoutCodeValid) return;
+        if (!logoutCodeValid) {
+            setLogoutCodeError('排列錯誤');
+            return;
+        }
+        setLogoutCodeError('');
         try {
             if (trip?.id) await SupabaseService.releaseMyIdentity(trip.id);
         } catch (err) {
@@ -522,6 +527,7 @@ export const HomeScreen: React.FC = () => {
                         className="text-[11px] text-zen-text-light underline min-h-[32px] -mt-1 mb-1"
                         onClick={() => {
                             setLogoutCodeValid(false);
+                            setLogoutCodeError('');
                             setShowLogoutChallenge(true);
                         }}
                     >
@@ -1113,9 +1119,13 @@ export const HomeScreen: React.FC = () => {
                         <AvatarCodeWheel
                             sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
                             travelers={travelers}
-                            onValidChange={setLogoutCodeValid}
+                            onValidChange={(valid) => {
+                                setLogoutCodeValid(valid);
+                                if (valid) setLogoutCodeError('');
+                            }}
                         />
                     </div>
+                    {logoutCodeError && <p className="mt-3 text-sm text-cta">{logoutCodeError}</p>}
                     <div className="mt-6 flex gap-3">
                         <button
                             type="button"
@@ -1126,9 +1136,8 @@ export const HomeScreen: React.FC = () => {
                         </button>
                         <button
                             type="button"
-                            disabled={!logoutCodeValid}
                             onClick={() => void completeLogout()}
-                            className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45"
+                            className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold"
                         >
                             確認登出
                         </button>

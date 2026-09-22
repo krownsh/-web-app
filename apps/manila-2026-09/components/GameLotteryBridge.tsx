@@ -54,6 +54,7 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
     const [result, setResult] = useState<LotteryDraw | null>(null);
     const [loadError, setLoadError] = useState(error || '');
     const [lotteryCodeValid, setLotteryCodeValid] = useState(false);
+    const [codeError, setCodeError] = useState('');
 
     const startedRef = useRef(false);
 
@@ -139,17 +140,28 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
                     <AvatarCodeWheel
                         sequence={['韋劭', '韋劭', '郁欣', '郁欣'] as CodeMember[]}
                         travelers={travelers}
-                        onValidChange={setLotteryCodeValid}
+                        onValidChange={(valid) => {
+                            setLotteryCodeValid(valid);
+                            if (valid) setCodeError('');
+                        }}
                     />
                 </div>
                 <button
                     type="button"
-                    disabled={busy || curtainUp || !lotteryCodeValid}
-                    onClick={() => setCurtainUp(true)}
+                    disabled={busy || curtainUp}
+                    onClick={() => {
+                        if (!lotteryCodeValid) {
+                            setCodeError('排列錯誤');
+                            return;
+                        }
+                        setCodeError('');
+                        setCurtainUp(true);
+                    }}
                     className="mt-5 w-full max-w-xs py-4 rounded-full bg-cta text-white font-bold text-lg disabled:cursor-not-allowed disabled:opacity-45"
                 >
                     {busy ? '抽籤中…' : '開始抽籤'}
                 </button>
+                {codeError && !curtainUp && <p className="mt-3 text-sm text-cta">{codeError}</p>}
                 {loadError && !result && <p className="mt-3 text-sm text-cta">{loadError}</p>}
             </div>
 
