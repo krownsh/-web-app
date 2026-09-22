@@ -9,6 +9,7 @@ import { BottomSheet } from '../components/ui/bottom-sheet';
 import { CinemaHero } from '../components/CinemaHero';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import { DevilPhotoLeaderboard, DevilPhotoVote, DevilLeaderboardPhoto } from '../components/DevilPhotoLeaderboard';
+import { AvatarCodeWheel, CodeMember } from '../components/AvatarCodeWheel';
 import { toast } from 'sonner';
 import { formatMustBuyPrice, migrateLocalGuideToCloud } from '../lib/guideCloud';
 
@@ -21,6 +22,8 @@ export const HomeScreen: React.FC = () => {
     const [votingPhoto, setVotingPhoto] = useState(false);
     const [showSOSModal, setShowSOSModal] = useState(false);
     const [showTranslateModal, setShowTranslateModal] = useState(false);
+    const [showLogoutChallenge, setShowLogoutChallenge] = useState(false);
+    const [logoutCodeValid, setLogoutCodeValid] = useState(false);
 
 
     // --- Meeting Point Modal State ---
@@ -489,6 +492,16 @@ export const HomeScreen: React.FC = () => {
         }
     };
 
+    const completeLogout = async () => {
+        if (!logoutCodeValid) return;
+        try {
+            if (trip?.id) await SupabaseService.releaseMyIdentity(trip.id);
+        } catch (err) {
+            console.error(err);
+        }
+        await supabase.auth.signOut();
+    };
+
     return (
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative pb-28 page-enter">
             <div className="px-5 pt-5 flex items-start justify-between">
@@ -496,13 +509,9 @@ export const HomeScreen: React.FC = () => {
                     <button
                         type="button"
                         className="text-[11px] text-zen-text-light underline min-h-[32px] -mt-1 mb-1"
-                        onClick={async () => {
-                            try {
-                                if (trip?.id) await SupabaseService.releaseMyIdentity(trip.id);
-                            } catch (err) {
-                                console.error(err);
-                            }
-                            await supabase.auth.signOut();
+                        onClick={() => {
+                            setLogoutCodeValid(false);
+                            setShowLogoutChallenge(true);
                         }}
                     >
                         登出重選
@@ -1080,6 +1089,47 @@ export const HomeScreen: React.FC = () => {
                             </button>
                         </div>
             </BottomSheet>
+
+            {showLogoutChallenge && (
+                <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-zen-dark/70 p-5 backdrop-blur-sm">
+                    <section
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="logout-challenge-title"
+                        className="w-full max-w-sm rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl animate-scale-up"
+                    >
+                        <p className="text-[10px] font-bold tracking-[0.3em] text-white/60">IDENTITY CHECK</p>
+                        <h2 id="logout-challenge-title" className="mt-2 font-serif text-2xl">確認登出</h2>
+                        <p className="mt-2 text-sm leading-relaxed text-white/70">
+                            請轉出團員代碼後再登出，避免誤觸或被他人重選身分。
+                        </p>
+                        <div className="mt-5">
+                            <AvatarCodeWheel
+                                sequence={['韋', '劭', '郁', '欣', '韋', '劭', '郁', '欣'] as CodeMember[]}
+                                travelers={travelers}
+                                onValidChange={setLogoutCodeValid}
+                            />
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowLogoutChallenge(false)}
+                                className="flex-1 rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
+                            >
+                                取消
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!logoutCodeValid}
+                                onClick={() => void completeLogout()}
+                                className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45"
+                            >
+                                確認登出
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 };

@@ -60,6 +60,16 @@ export const GameScreen: React.FC = () => {
 
     const pool = travelers.filter((t) => t.display_name !== 'Haru');
 
+    useEffect(() => {
+        if (!tripId) return;
+        SupabaseService.getTravelers(tripId)
+            .then(setTravelers)
+            .catch((err) => {
+                console.error(err);
+                setTravelers([]);
+            });
+    }, [tripId]);
+
     const guestDraw = (): Draw | null => {
         if (!gameClaim) return null;
         return {
@@ -256,6 +266,7 @@ export const GameScreen: React.FC = () => {
                         markLotteryPlayed();
                         setLotteryPlayed(true);
                     }}
+                    travelers={travelers}
                 />
             </div>
         );
