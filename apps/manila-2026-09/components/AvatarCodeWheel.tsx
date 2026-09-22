@@ -104,9 +104,9 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
                                         className="grid h-32 w-[112px] shrink-0 snap-center place-items-center"
                                     >
                                         <div
-                                            className={`grid place-items-center overflow-hidden rounded-full transition-[transform,filter,opacity,box-shadow] duration-150 ${
+                                            className={`grid place-items-center bg-transparent transition-[transform,filter,opacity] duration-150 ${
                                                 isCenter
-                                                    ? 'h-28 w-28 scale-110 shadow-[0_16px_28px_rgba(0,0,0,.5)]'
+                                                    ? 'h-28 w-28 scale-110 drop-shadow-[0_12px_18px_rgba(0,0,0,.45)]'
                                                     : isSide
                                                         ? 'h-[4.5rem] w-[4.5rem] scale-90 opacity-50 blur-[2px]'
                                                         : 'h-12 w-12 scale-75 opacity-0'
@@ -116,7 +116,7 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
                                                 <img
                                                     src={travelerPhotoSrc(member.photoUrl)}
                                                     alt=""
-                                                    className="h-full w-auto max-w-full object-contain"
+                                                    className="h-full w-auto max-w-full object-contain bg-transparent"
                                                 />
                                             ) : (
                                                 <span className="text-lg font-bold">{member.name.slice(0, 1)}</span>
