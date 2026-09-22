@@ -1116,7 +1116,7 @@ export const HomeScreen: React.FC = () => {
                         </p>
                         <div className="mt-5">
                             <AvatarCodeWheel
-                                sequence={['韋', '劭', '郁', '欣', '韋', '劭', '郁', '欣'] as CodeMember[]}
+                                sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
                                 travelers={travelers}
                                 onValidChange={setLogoutCodeValid}
                             />

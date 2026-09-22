@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import type { Traveler } from '../types';
 
-export const CODE_MEMBERS = ['韋', '劭', '郁', '欣'] as const;
+export const CODE_MEMBERS = ['韋劭', '郁欣'] as const;
 export type CodeMember = typeof CODE_MEMBERS[number];
 
 const AVATAR_COLORS: Record<CodeMember, string> = {
-    韋: 'from-sky-400 to-blue-600',
-    劭: 'from-violet-400 to-purple-600',
-    郁: 'from-emerald-400 to-teal-600',
-    欣: 'from-rose-400 to-pink-600',
+    韋劭: 'from-sky-400 to-blue-600',
+    郁欣: 'from-rose-400 to-pink-600',
 };
 
 type Props = {
@@ -73,7 +71,7 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
                                         style={{ transform: `translateY(${spinningIndex === index ? -38 : -14}px)` }}
                                     >
                                         {displayedMembers.map((member, memberIndex) => {
-                                            const traveler = travelers.find((item) => item.display_name.startsWith(member));
+                            const traveler = travelers.find((item) => item.display_name.includes(member));
                                             return (
                                                 <span
                                                     key={`${member}-${memberIndex}`}
