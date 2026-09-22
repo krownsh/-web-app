@@ -123,6 +123,7 @@ export const ClaimTravelerScreen: React.FC<{
                                 <img
                                     src={travelerPhotoSrc(face.photo_url)}
                                     alt=""
+                                    decoding="async"
                                     className="w-full h-40 object-contain bg-transparent"
                                 />
                             ) : (
