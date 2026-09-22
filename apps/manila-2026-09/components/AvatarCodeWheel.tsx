@@ -49,12 +49,35 @@ const SnapReel: React.FC<{
     const loop = useMemo(() => [...members, ...members, ...members], [members]);
     const xRef = useRef(0);
     const indexRef = useRef(0);
+    const widthRef = useRef(0);
     const dragRef = useRef<{ pointer: number; startX: number; origin: number; lastX: number; lastT: number; velocity: number } | null>(null);
+    const onIndexChangeRef = useRef(onIndexChange);
+    onIndexChangeRef.current = onIndexChange;
 
-    const xForIndex = useCallback((index: number, width: number) => {
-        const copy = members.length + wrapIndex(members.length, index);
-        return width / 2 - (copy + 0.5) * CELL;
-    }, [members.length]);
+    const span = members.length * CELL;
+
+    const xForLoopIndex = useCallback((loopIndex: number, width: number) => (
+        width / 2 - (loopIndex + 0.5) * CELL
+    ), []);
+
+    const loopIndexFromX = useCallback((x: number, width: number) => (
+        Math.round((width / 2 - x) / CELL - 0.5)
+    ), []);
+
+    const wrapToMiddle = useCallback((x: number, width: number) => {
+        if (members.length === 0) return x;
+        let next = x;
+        let i = (width / 2 - next) / CELL - 0.5;
+        while (i < members.length) {
+            next -= span;
+            i += members.length;
+        }
+        while (i >= members.length * 2) {
+            next += span;
+            i -= members.length;
+        }
+        return next;
+    }, [members.length, span]);
 
     const paint = useCallback((x: number, animate: boolean) => {
         const viewport = viewportRef.current;
@@ -89,35 +112,61 @@ const SnapReel: React.FC<{
     }, []);
 
     const settle = useCallback((x: number, velocity: number) => {
-        const viewport = viewportRef.current;
-        if (!viewport) return;
-        const width = viewport.clientWidth || 1;
-        const projected = x + velocity * 140;
-        const raw = Math.round((width / 2 - projected) / CELL - 0.5);
-        const memberIndex = wrapIndex(members.length, raw);
-        const snapped = xForIndex(memberIndex, width);
+        const width = widthRef.current || viewportRef.current?.clientWidth || 0;
+        if (width < 8 || members.length === 0) return;
+        const projected = x + velocity * 120;
+        const raw = loopIndexFromX(projected, width);
+        const loopIndex = Math.max(0, Math.min(members.length * 3 - 1, raw));
+        const snapped = xForLoopIndex(loopIndex, width);
         xRef.current = snapped;
-        indexRef.current = memberIndex;
+        indexRef.current = wrapIndex(members.length, loopIndex);
         paint(snapped, true);
-        onIndexChange(memberIndex);
-    }, [members.length, onIndexChange, paint, xForIndex]);
-
-    const onIndexChangeRef = useRef(onIndexChange);
-    onIndexChangeRef.current = onIndexChange;
+        onIndexChangeRef.current(indexRef.current);
+        window.setTimeout(() => {
+            const recentered = wrapToMiddle(xRef.current, width);
+            if (recentered === xRef.current) return;
+            xRef.current = recentered;
+            paint(recentered, false);
+        }, 340);
+    }, [loopIndexFromX, members.length, paint, wrapToMiddle, xForLoopIndex]);
 
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport || members.length === 0) return;
-        const found = members.findIndex((member) => member.name === startName);
-        const startIndex = found >= 0 ? found : 0;
-        indexRef.current = startIndex;
-        const x = xForIndex(startIndex, viewport.clientWidth || 1);
-        xRef.current = x;
-        paint(x, false);
-        onIndexChangeRef.current(startIndex);
-    }, [members, paint, startName, xForIndex]);
+
+        const applyStart = (width: number) => {
+            const found = members.findIndex((member) => member.name === startName);
+            const startIndex = found >= 0 ? found : 0;
+            indexRef.current = startIndex;
+            const x = xForLoopIndex(members.length + startIndex, width);
+            xRef.current = x;
+            paint(x, false);
+            onIndexChangeRef.current(startIndex);
+        };
+
+        const syncWidth = () => {
+            const width = viewport.clientWidth;
+            if (width < 8) return;
+            if (widthRef.current < 8) {
+                widthRef.current = width;
+                applyStart(width);
+                return;
+            }
+            if (width === widthRef.current) return;
+            widthRef.current = width;
+            const x = xForLoopIndex(members.length + indexRef.current, width);
+            xRef.current = x;
+            paint(x, false);
+        };
+
+        syncWidth();
+        const observer = new ResizeObserver(syncWidth);
+        observer.observe(viewport);
+        return () => observer.disconnect();
+    }, [members, paint, startName, xForLoopIndex]);
 
     const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
         dragRef.current = {
             pointer: event.pointerId,
@@ -135,12 +184,15 @@ const SnapReel: React.FC<{
         if (!drag || drag.pointer !== event.pointerId) return;
         const now = performance.now();
         const next = drag.origin + (event.clientX - drag.startX);
+        const width = widthRef.current || viewportRef.current?.clientWidth || 1;
+        const wrapped = wrapToMiddle(next, width);
+        if (wrapped !== next) drag.origin += wrapped - next;
         const dt = Math.max(now - drag.lastT, 1);
         drag.velocity = (event.clientX - drag.lastX) / dt;
         drag.lastX = event.clientX;
         drag.lastT = now;
-        xRef.current = next;
-        paint(next, false);
+        xRef.current = wrapped;
+        paint(wrapped, false);
     };
 
     const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -153,7 +205,7 @@ const SnapReel: React.FC<{
     return (
         <div
             ref={viewportRef}
-            className="relative h-[5.5rem] overflow-hidden overscroll-contain touch-pan-x"
+            className="relative h-[5.5rem] overflow-hidden overscroll-contain touch-none"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
