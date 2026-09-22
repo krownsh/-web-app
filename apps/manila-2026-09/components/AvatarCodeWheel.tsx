@@ -4,12 +4,19 @@ import type { Traveler } from '../types';
 
 export type CodeMember = string;
 
-const CELL = 112;
-
 type Member = {
     name: string;
     photoUrl: string | null;
 };
+
+const CELL = 112;
+const DEFAULT_STARTS = ['靜瑩', '彥文', '宇庭', '庭宇'];
+const GUEST_FACES: Member[] = [
+    { name: '彥文', photoUrl: '/guests/a.png' },
+    { name: '靜瑩', photoUrl: '/guests/b.png' },
+    { name: '宇庭', photoUrl: '/guests/c.png' },
+    { name: '庭宇', photoUrl: '/guests/d.png' },
+];
 
 type Props = {
     sequence: CodeMember[];
@@ -25,10 +32,16 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
     const [offsets, setOffsets] = useState<number[]>(() => Array(sequence.length).fill(0));
     const [scrolls, setScrolls] = useState<number[]>(() => Array(sequence.length).fill(0));
     const reelRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const members: Member[] = travelers.map((traveler) => ({
-        name: traveler.display_name,
-        photoUrl: traveler.photo_url,
-    }));
+    const members: Member[] = (() => {
+        const fromApi = travelers
+            .filter((traveler) => traveler.display_name !== 'Haru' && traveler.display_name !== '共用訪客')
+            .map((traveler) => ({
+                name: traveler.display_name,
+                photoUrl: traveler.photo_url,
+            }));
+        const seen = new Set(fromApi.map((member) => member.name));
+        return [...fromApi, ...GUEST_FACES.filter((guest) => !seen.has(guest.name))];
+    })();
     const loop = [...members, ...members, ...members];
 
     const reportValid = useCallback((values: number[]) => {
@@ -44,13 +57,17 @@ export const AvatarCodeWheel: React.FC<Props> = ({ sequence, travelers, onValidC
             onValidChange(false);
             return;
         }
-        const start = members.length * CELL;
-        reelRefs.current.forEach((reel) => {
-            if (reel) reel.scrollLeft = start;
+        const zeros = sequence.map((_, index) => {
+            const startName = DEFAULT_STARTS[index];
+            const found = members.findIndex((member) => member.name === startName);
+            return found >= 0 ? found : 0;
         });
-        const zeros = Array(sequence.length).fill(0);
+        const startCopy = members.length * CELL;
+        reelRefs.current.forEach((reel, index) => {
+            if (reel) reel.scrollLeft = startCopy + zeros[index] * CELL;
+        });
         setOffsets(zeros);
-        setScrolls(Array(sequence.length).fill(start));
+        setScrolls(zeros.map((offset) => startCopy + offset * CELL));
         reportValid(zeros);
     }, [members.length, onValidChange, reportValid, sequence.length]);
 

@@ -1,70 +1,15 @@
-import React, { useState } from 'react';
-
-const MOSAIC_FACES = [
-    '/travelers/meihui.webp',
-    '/travelers/zhihao.webp',
-    '/travelers/haru.webp',
-    '/travelers/farong.webp',
-    '/travelers/zichen.webp',
-    '/travelers/junxuan.webp',
-    '/travelers/weishao.webp',
-    '/travelers/yuxin.webp',
-    '/travelers/chenghong.webp',
-    '/guests/a.webp',
-    '/guests/b.webp',
-    '/guests/c.webp',
-    '/guests/d.webp',
-];
-
-const WALLPAPER_COLS = 6;
-const WALLPAPER_ROWS = 6;
-
-function shuffle<T>(items: T[]): T[] {
-    const next = [...items];
-    for (let i = next.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [next[i], next[j]] = [next[j], next[i]];
-    }
-    return next;
-}
-
-function wallpaperStyle(index: number) {
-    const col = index % WALLPAPER_COLS;
-    const brick = col % 2 === 0 ? 0 : 20;
-    const x = ((index * 47) % 33) - 16;
-    const y = brick + ((index * 31) % 41) - 20;
-    const rot = ((index * 19) % 29) - 14;
-    return {
-        transform: `translate(${x}px, ${y}px) rotate(${rot}deg)`,
-    };
-}
-
-function buildMosaic() {
-    const count = WALLPAPER_ROWS * WALLPAPER_COLS;
-    const faces: string[] = [];
-    while (faces.length < count) {
-        faces.push(...shuffle(MOSAIC_FACES));
-    }
-    return faces.slice(0, count);
-}
+import React from 'react';
 
 export function FaceMosaic({ children }: { children: React.ReactNode }) {
-    const [faces] = useState(buildMosaic);
     return (
         <div className="relative flex h-full min-h-0 items-center justify-center overflow-hidden bg-zen-dark px-6">
-            <div className="absolute -inset-14 grid grid-cols-6 gap-x-4 gap-y-5" aria-hidden="true">
-                {faces.map((src, i) => (
-                    <img
-                        key={`${src}-${i}`}
-                        src={src}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        style={wallpaperStyle(i)}
-                        className="size-[4.5rem] justify-self-center object-contain"
-                    />
-                ))}
-            </div>
+            <img
+                src="/faces/mosaic.webp"
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+                className="pointer-events-none absolute -inset-14 h-[calc(100%+7rem)] w-[calc(100%+7rem)] max-w-none object-cover"
+            />
             <div className="absolute inset-0 bg-zen-dark/40" aria-hidden="true" />
             <div className="relative z-10 w-full max-w-[20rem]">{children}</div>
         </div>
