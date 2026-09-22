@@ -24,6 +24,7 @@ export const HomeScreen: React.FC = () => {
     const [showTranslateModal, setShowTranslateModal] = useState(false);
     const [showLogoutChallenge, setShowLogoutChallenge] = useState(false);
     const [logoutCodeValid, setLogoutCodeValid] = useState(false);
+    const logoutDialogRef = useRef<HTMLDialogElement>(null);
 
 
     // --- Meeting Point Modal State ---
@@ -501,6 +502,16 @@ export const HomeScreen: React.FC = () => {
         }
         await supabase.auth.signOut();
     };
+
+    useEffect(() => {
+        const dialog = logoutDialogRef.current;
+        if (!dialog) return;
+        if (showLogoutChallenge && !dialog.open) {
+            dialog.showModal();
+        } else if (!showLogoutChallenge && dialog.open) {
+            dialog.close();
+        }
+    }, [showLogoutChallenge]);
 
     return (
         <div className="flex-1 h-full overflow-y-auto no-scrollbar relative pb-28 page-enter">
@@ -1091,13 +1102,13 @@ export const HomeScreen: React.FC = () => {
             </BottomSheet>
 
             {showLogoutChallenge && (
-                <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-zen-dark/70 p-5 backdrop-blur-sm">
-                    <section
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="logout-challenge-title"
-                        className="w-full max-w-sm rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl animate-scale-up"
-                    >
+                <dialog
+                    ref={logoutDialogRef}
+                    aria-labelledby="logout-challenge-title"
+                    onClose={() => setShowLogoutChallenge(false)}
+                    className="m-auto w-[calc(100%-2.5rem)] max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl backdrop:bg-zen-dark/70 backdrop:backdrop-blur-sm animate-scale-up"
+                >
+                    <section>
                         <p className="text-[10px] font-bold tracking-[0.3em] text-white/60">IDENTITY CHECK</p>
                         <h2 id="logout-challenge-title" className="mt-2 font-serif text-2xl">確認登出</h2>
                         <p className="mt-2 text-sm leading-relaxed text-white/70">
@@ -1105,7 +1116,7 @@ export const HomeScreen: React.FC = () => {
                         </p>
                         <div className="mt-5">
                             <AvatarCodeWheel
-                                sequence={['韋', '劭', '郁', '欣', '韋', '劭', '郁', '欣'] as CodeMember[]}
+                                sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
                                 travelers={travelers}
                                 onValidChange={setLogoutCodeValid}
                             />
@@ -1128,7 +1139,7 @@ export const HomeScreen: React.FC = () => {
                             </button>
                         </div>
                     </section>
-                </div>
+                </dialog>
             )}
         </div>
     );
