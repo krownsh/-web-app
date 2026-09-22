@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { travelerPhotoSrc } from '../lib/travelerPhoto';
 import type { Traveler } from '../types';
 
@@ -138,9 +138,10 @@ const SnapReel: React.FC<{
         }, 340);
     };
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport || members.length === 0) return;
+        widthRef.current = 0;
 
         const applyStart = (width: number, cell: number) => {
             const found = members.findIndex((member) => member.name === startName);
@@ -153,8 +154,9 @@ const SnapReel: React.FC<{
         };
 
         const syncSize = () => {
-            const width = viewport.clientWidth;
-            const height = viewport.clientHeight;
+            const rect = viewport.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
             if (width < 8) return;
             const cell = width / 3;
             const first = widthRef.current < 8;
@@ -166,16 +168,25 @@ const SnapReel: React.FC<{
                 applyStart(width, cell);
                 return;
             }
-            if (!changed) return;
+            if (!changed) {
+                paint(xRef.current, false);
+                return;
+            }
             const x = xForLoopIndex(members.length + indexRef.current, width, cell);
             xRef.current = x;
             paint(x, false);
         };
 
         syncSize();
-        const observer = new ResizeObserver(syncSize);
+        const frame = window.requestAnimationFrame(syncSize);
+        const observer = new ResizeObserver(() => {
+            window.requestAnimationFrame(syncSize);
+        });
         observer.observe(viewport);
-        return () => observer.disconnect();
+        return () => {
+            window.cancelAnimationFrame(frame);
+            observer.disconnect();
+        };
     }, [members, startName]);
 
     const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -218,7 +229,7 @@ const SnapReel: React.FC<{
     return (
         <div
             ref={viewportRef}
-            className="relative min-h-0 min-w-0 overflow-clip overscroll-contain touch-none"
+            className="relative h-full min-h-0 w-full min-w-0 overflow-clip overscroll-contain touch-none [container-type:size]"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -230,16 +241,16 @@ const SnapReel: React.FC<{
                 {loop.map((member, memberIndex) => (
                     <div
                         key={`${member.name}-${memberIndex}`}
-                        className="grid h-full shrink-0 place-items-center"
+                        className="grid h-full w-[calc(100cqw/3)] shrink-0 place-items-center"
                     >
-                        <div className="grid place-items-center overflow-visible bg-transparent">
+                        <div className="grid size-[min(92cqh,calc(100cqw*0.306))] place-items-center overflow-visible bg-transparent">
                             {member.photoUrl ? (
                                 <img
                                     src={travelerPhotoSrc(member.photoUrl)}
                                     alt=""
                                     draggable={false}
                                     decoding="async"
-                                    className="pointer-events-none block h-full w-auto max-w-full object-contain bg-transparent"
+                                    className="pointer-events-none block max-h-full max-w-full object-contain bg-transparent"
                                 />
                             ) : (
                                 <span className="text-lg font-bold">{member.name.slice(0, 1)}</span>
