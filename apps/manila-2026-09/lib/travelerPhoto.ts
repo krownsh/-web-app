@@ -1,4 +1,5 @@
 export function travelerPhotoSrc(url?: string | null) {
     if (!url) return '';
-    return url.replace(/\.jpg$/i, '.png');
+    if (/\/travelers\/.*\.png$/i.test(url)) return url.replace(/\.png$/i, '.jpg');
+    return url;
 }
