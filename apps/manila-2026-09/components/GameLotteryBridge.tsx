@@ -134,8 +134,7 @@ export const GameLotteryBridge: React.FC<Props> = ({ busy, error, onFinished, on
                     curtainUp ? '-translate-y-full' : 'translate-y-0'
                 }`}
             >
-                <p className="text-[10px] tracking-[0.35em] uppercase text-white/70">任務</p>
-                <h1 className="font-serif text-4xl mt-2">抽籤</h1>
+                <h1 className="font-serif text-4xl">抽籤</h1>
                 <div className="mt-6 w-full max-w-xs">
                     <AvatarCodeWheel
                         sequence={['韋劭', '韋劭', '郁欣', '郁欣'] as CodeMember[]}

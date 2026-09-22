@@ -1106,39 +1106,33 @@ export const HomeScreen: React.FC = () => {
                     ref={logoutDialogRef}
                     aria-labelledby="logout-challenge-title"
                     onClose={() => setShowLogoutChallenge(false)}
-                    className="m-auto w-[calc(100%-2.5rem)] max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl backdrop:bg-zen-dark/70 backdrop:backdrop-blur-sm animate-scale-up"
+                    className="m-auto w-[calc(100%-2.5rem)] max-w-sm overflow-hidden rounded-[1.5rem] bg-zen-dark p-6 text-white shadow-2xl backdrop:bg-zen-dark/70"
                 >
-                    <section>
-                        <p className="text-[10px] font-bold tracking-[0.3em] text-white/60">IDENTITY CHECK</p>
-                        <h2 id="logout-challenge-title" className="mt-2 font-serif text-2xl">確認登出</h2>
-                        <p className="mt-2 text-sm leading-relaxed text-white/70">
-                            請轉出團員代碼後再登出，避免誤觸或被他人重選身分。
-                        </p>
-                        <div className="mt-5">
-                            <AvatarCodeWheel
-                                sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
-                                travelers={travelers}
-                                onValidChange={setLogoutCodeValid}
-                            />
-                        </div>
-                        <div className="mt-6 flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowLogoutChallenge(false)}
-                                className="flex-1 rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
-                            >
-                                取消
-                            </button>
-                            <button
-                                type="button"
-                                disabled={!logoutCodeValid}
-                                onClick={() => void completeLogout()}
-                                className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45"
-                            >
-                                確認登出
-                            </button>
-                        </div>
-                    </section>
+                    <h2 id="logout-challenge-title" className="font-serif text-2xl">確認登出</h2>
+                    <div className="mt-5">
+                        <AvatarCodeWheel
+                            sequence={['韋劭', '郁欣', '韋劭', '郁欣'] as CodeMember[]}
+                            travelers={travelers}
+                            onValidChange={setLogoutCodeValid}
+                        />
+                    </div>
+                    <div className="mt-6 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowLogoutChallenge(false)}
+                            className="flex-1 rounded-full border border-white/25 px-4 py-3 text-sm font-bold"
+                        >
+                            取消
+                        </button>
+                        <button
+                            type="button"
+                            disabled={!logoutCodeValid}
+                            onClick={() => void completeLogout()}
+                            className="flex-1 rounded-full bg-cta px-4 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                            確認登出
+                        </button>
+                    </div>
                 </dialog>
             )}
         </div>
