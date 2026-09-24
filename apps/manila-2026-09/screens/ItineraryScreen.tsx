@@ -477,17 +477,17 @@ const ItineraryScreen: React.FC = () => {
                                     </span>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start gap-3">
-                                            <h3 className={`text-base font-medium text-zen-text leading-tight ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
+                                            <h3 className={`text-base font-medium text-zen-text leading-snug whitespace-normal break-words text-pretty min-w-0 ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
                                                 {item.item_name}
                                             </h3>
                                             {formatMustBuyPrice(item.price, money.symbol) && (
-                                                <div className="px-2 py-0.5 rounded-md bg-zen-mist text-xs text-zen-moss font-serif">
+                                                <div className="shrink-0 px-2 py-0.5 rounded-md bg-zen-mist text-xs text-zen-moss font-serif">
                                                     {formatMustBuyPrice(item.price, money.symbol)}
                                                 </div>
                                             )}
                                         </div>
                                         {item.note && (
-                                            <p className={`text-xs text-zen-text-light mt-1.5 leading-relaxed ${isChecked ? 'line-through' : ''}`}>{item.note}</p>
+                                            <p className={`text-xs text-zen-text-light mt-1.5 leading-relaxed whitespace-normal break-words text-pretty ${isChecked ? 'line-through' : ''}`}>{item.note}</p>
                                         )}
                                         {item.visibility === 'private' && (
                                             <span className="inline-flex items-center gap-0.5 mt-2 text-[9px] font-bold text-zen-brown bg-zen-brown/10 px-1.5 py-0.5 rounded-md">
