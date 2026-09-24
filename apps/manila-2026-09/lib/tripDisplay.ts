@@ -178,23 +178,41 @@ export function calendarDateInTz(timeZone?: string, at = new Date()) {
     }).format(at);
 }
 
+type HomeTripDay = { day_key: string; calendar_date?: string; day_index: number };
+
+function parseDayKeyNumber(dayKey?: string) {
+    const n = Number(String(dayKey || '').replace(/^D/i, ''));
+    return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** zentravel_trip_days.day_index is 1-based (D1=1). Support 0-based fallbacks. */
+export function displayTripDayNumber(day: HomeTripDay | undefined, ordered: HomeTripDay[] = []) {
+    if (!day) return 1;
+    const fromKey = parseDayKeyNumber(day.day_key);
+    if (fromKey != null) return fromKey;
+    const zeroBased = ordered.some((d) => d.day_index === 0);
+    if (zeroBased) return Math.max(day.day_index + 1, 1);
+    if (Number.isFinite(day.day_index) && day.day_index >= 1) return day.day_index;
+    return 1;
+}
+
 export function resolveHomeTripDay(opts: {
     timezone?: string;
     startDate?: string;
     endDate?: string;
-    days: { day_key: string; calendar_date?: string; day_index: number }[];
+    days: HomeTripDay[];
     now?: Date;
 }): { type: 'countdown' | 'day' | 'ended'; value: number; dayKey: string } {
     const ordered = [...opts.days].sort((a, b) => {
-        const da = a.calendar_date || '';
-        const db = b.calendar_date || '';
+        const da = ymd(a.calendar_date);
+        const db = ymd(b.calendar_date);
         if (da && db && da !== db) return da.localeCompare(db);
         return a.day_index - b.day_index;
     });
     const fallbackKey = ordered[0]?.day_key || 'D1';
     const todayKey = calendarDateInTz(opts.timezone, opts.now);
-    const start = opts.startDate || ordered[0]?.calendar_date;
-    const end = opts.endDate || ordered[ordered.length - 1]?.calendar_date;
+    const start = ymd(opts.startDate || ordered[0]?.calendar_date);
+    const end = ymd(opts.endDate || ordered[ordered.length - 1]?.calendar_date);
 
     if (start && todayKey < start) {
         const startMs = new Date(`${start}T00:00:00`).getTime();
@@ -209,17 +227,20 @@ export function resolveHomeTripDay(opts: {
         const last = ordered[ordered.length - 1];
         return {
             type: 'ended',
-            value: Math.max(last?.day_index + 1 || ordered.length, 1),
+            value: displayTripDayNumber(last, ordered),
             dayKey: last?.day_key || `D${Math.max(ordered.length, 1)}`,
         };
     }
-    const exact = ordered.find((d) => d.calendar_date === todayKey);
+    const exact = ordered.find((d) => ymd(d.calendar_date) === todayKey);
     if (exact) {
-        return { type: 'day', value: exact.day_index + 1, dayKey: exact.day_key };
+        return { type: 'day', value: displayTripDayNumber(exact, ordered), dayKey: exact.day_key };
     }
-    const started = [...ordered].reverse().find((d) => d.calendar_date && d.calendar_date <= todayKey);
+    const started = [...ordered].reverse().find((d) => {
+        const date = ymd(d.calendar_date);
+        return date && date <= todayKey;
+    });
     if (started) {
-        return { type: 'day', value: started.day_index + 1, dayKey: started.day_key };
+        return { type: 'day', value: displayTripDayNumber(started, ordered), dayKey: started.day_key };
     }
-    return { type: 'day', value: 1, dayKey: fallbackKey };
+    return { type: 'day', value: displayTripDayNumber(ordered[0], ordered), dayKey: fallbackKey };
 }
