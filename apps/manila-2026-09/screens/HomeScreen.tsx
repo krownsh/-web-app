@@ -829,24 +829,24 @@ export const HomeScreen: React.FC = () => {
                                     const row = (
                                             <div
                                                 onClick={() => toggleCheck(item.id)}
-                                                className={`flex items-center gap-4 p-3 rounded-2xl border duration-300 cursor-pointer ${isChecked ? 'bg-zen-mist border-transparent opacity-60' : 'bg-white border-zen-rock'}`}
+                                                className={`flex items-start gap-4 p-3 rounded-2xl border duration-300 cursor-pointer ${isChecked ? 'bg-zen-mist border-transparent opacity-60' : 'bg-white border-zen-rock'}`}
                                             >
                                                 {/* Checkbox */}
-                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-transform duration-200 ${isChecked ? 'bg-zen-moss border-zen-moss scale-110' : 'border-zen-rock/30 bg-white'}`}>
+                                                <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-transform duration-200 ${isChecked ? 'bg-zen-moss border-zen-moss scale-110' : 'border-zen-rock/30 bg-white'}`}>
                                                     {isChecked && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                                                 </div>
 
                                                 {/* Content */}
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-base font-bold text-zen-text truncate transition-all ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
+                                                    <p className={`text-base font-bold text-zen-text whitespace-normal break-words text-pretty leading-snug transition-all ${isChecked ? 'line-through text-zen-text-light' : ''}`}>
                                                         {item.item_name}
                                                     </p>
-                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                    <div className="flex flex-wrap items-start gap-2 mt-0.5">
                                                         <span className="text-[10px] font-bold text-zen-moss bg-zen-moss/10 px-1.5 py-0.5 rounded-md">
                                                             {formatMustBuyPrice(item.price, money.symbol)}
                                                         </span>
                                                         {item.location_ref && (
-                                                            <span className="text-[10px] text-zen-text-light truncate max-w-[120px]">
+                                                            <span className="text-[10px] text-zen-text-light whitespace-normal break-words min-w-0">
                                                                 @{item.location_ref}
                                                             </span>
                                                         )}
