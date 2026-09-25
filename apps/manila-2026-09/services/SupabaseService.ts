@@ -245,6 +245,15 @@ export const SupabaseService = {
         return data;
     },
 
+    async addBudgetRecord(record: Record<string, unknown>) {
+        const { data, error } = await supabase
+            .from('zentravel_budget_records')
+            .upsert(record, { onConflict: 'trip_id,owner_id,client_request_id' })
+            .select();
+        if (error) throw error;
+        return data;
+    },
+
     async updateRecord(table: string, id: string, updates: any) {
         const { data, error } = await supabase
             .from(table)

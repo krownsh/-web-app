@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MotionLink } from '../components/MotionLink';
 import { supabase, SupabaseService } from '../services/SupabaseService';
@@ -89,6 +89,9 @@ const MapBudgetScreen: React.FC = () => {
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const savingRef = useRef(false);
+    const draftRequestIdRef = useRef<string | null>(null);
     const [newRecord, setNewRecord] = useState({
         title: '',
         amount: '',
@@ -120,6 +123,7 @@ const MapBudgetScreen: React.FC = () => {
             return;
         }
         setEditingId(null);
+        draftRequestIdRef.current = crypto.randomUUID();
         const now = new Date();
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -149,6 +153,7 @@ const MapBudgetScreen: React.FC = () => {
             return;
         }
         setEditingId(record.id);
+        draftRequestIdRef.current = null;
         setNewRecord({
             title: record.title,
             amount: record.amount.toString(),
@@ -165,6 +170,10 @@ const MapBudgetScreen: React.FC = () => {
     const handleSave = async () => {
         if (isGuest) return;
         if (!newRecord.title || !newRecord.amount) return;
+        if (savingRef.current) return;
+
+        savingRef.current = true;
+        setIsSaving(true);
 
         const recordData: any = {
             title: newRecord.title,
@@ -186,16 +195,26 @@ const MapBudgetScreen: React.FC = () => {
                     setRecords(records.map((r: any) => r.id === editingId ? { ...r, ...recordData } : r));
                 }
             } else {
-                const success = await SupabaseService.addRecord('zentravel_budget_records', { ...recordData, trip_id: trip!.id, owner_id: myUserId });
+                const clientRequestId = draftRequestIdRef.current || crypto.randomUUID();
+                draftRequestIdRef.current = clientRequestId;
+                const success = await SupabaseService.addBudgetRecord({
+                    ...recordData,
+                    trip_id: trip!.id,
+                    client_request_id: clientRequestId,
+                });
                 if (success) {
                     setRecords([success[0], ...records]);
                 }
             }
             setIsAddModalOpen(false);
+            draftRequestIdRef.current = null;
             toast('已儲存');
         } catch (err) {
             console.error(err);
             toast('儲存失敗');
+        } finally {
+            savingRef.current = false;
+            setIsSaving(false);
         }
     };
 
@@ -561,15 +580,17 @@ const MapBudgetScreen: React.FC = () => {
                             <div className="flex gap-3 mt-4">
                                 <button
                                     onClick={() => setIsAddModalOpen(false)}
+                                    disabled={isSaving}
                                     className="flex-1 px-4 py-3 rounded-xl bg-zen-mist text-zen-text font-bold min-h-[44px]"
                                 >
                                     取消
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    className="flex-1 px-4 py-3 rounded-xl btn-cta font-bold min-h-[44px]"
+                                    disabled={isSaving}
+                                    className="flex-1 px-4 py-3 rounded-xl btn-cta font-bold min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed"
                                 >
-                                    儲存
+                                    {isSaving ? '儲存中…' : '儲存'}
                                 </button>
                             </div>
             </BottomSheet>
