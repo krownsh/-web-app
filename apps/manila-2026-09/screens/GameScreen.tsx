@@ -451,7 +451,7 @@ export const GameScreen: React.FC = () => {
                     </>
                 ) : (
                     <p className="text-sm text-zen-text-light mt-2">
-                        完整配對在行程最後一天中午 12:00（馬尼拉時間）公布
+                        完整配對在行程最後一天中午 12:00（宿霧時間）公布
                         {revealAt ? ` · ${new Date(revealAt).toLocaleString('zh-TW')}` : ''}
                     </p>
                 )}

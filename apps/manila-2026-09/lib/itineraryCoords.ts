@@ -1,31 +1,31 @@
 export type MapCoord = { lat: number; lng: number };
 
-/** Canonical pins for Manila 2026-09. Keys are itinerary stable_key. */
+/** Temporary Cebu pins. Keys retain their stable database identifiers. */
 export const ITINERARY_COORDS: Record<string, MapCoord> = {
     'd1-lai': { lat: 25.0777, lng: 121.233 }, // 桃園 TPE T2
-    'd1-ci703': { lat: 14.5086, lng: 121.0198 }, // NAIA T1
-    'd1-immigration': { lat: 14.5086, lng: 121.0198 },
-    'd1-grab': { lat: 14.5515, lng: 121.0173 }, // Citadines
-    'd1-checkin': { lat: 14.5515, lng: 121.0173 },
+    'd1-ci703': { lat: 10.3075, lng: 123.9794 }, // Mactan-Cebu airport
+    'd1-immigration': { lat: 10.3075, lng: 123.9794 },
+    'd1-grab': { lat: 10.3157, lng: 123.8854 },
+    'd1-checkin': { lat: 10.3157, lng: 123.8854 },
     'd1-wei-board': { lat: 22.5771, lng: 120.3498 }, // 高雄 KHH
-    'd1-greenbelt': { lat: 14.55197, lng: 121.0205 }, // Greenbelt
-    'd1-manam': { lat: 14.5522, lng: 121.0204 }, // Manam Greenbelt 2
-    'd1-wei-arrive': { lat: 14.5086, lng: 121.0198 },
-    'd1-walk': { lat: 14.5515, lng: 121.0173 },
-    'd2-grab-intra': { lat: 14.5515, lng: 121.0173 }, // 集合在飯店
-    'd2-intramuros': { lat: 14.5906, lng: 120.9733 }, // 馬尼拉大教堂
-    'd2-robinsons': { lat: 14.5763, lng: 120.9839 },
-    'd2-kenny': { lat: 14.5763, lng: 120.9839 },
-    'd2-museum': { lat: 14.5869, lng: 120.9812 },
-    'd2-moa': { lat: 14.5352, lng: 120.9822 },
-    'd2-bay': { lat: 14.5358, lng: 120.9792 }, // SM by the Bay
-    'd2-back': { lat: 14.5515, lng: 121.0173 },
-    'd3-legazpi': { lat: 14.554, lng: 121.0245 },
-    'd3-pack': { lat: 14.5515, lng: 121.0173 },
-    'd3-checkout': { lat: 14.5515, lng: 121.0173 },
-    'd3-lunch': { lat: 14.55197, lng: 121.0205 },
-    'd3-airport': { lat: 14.5086, lng: 121.0198 },
-    'd3-ci704': { lat: 14.5086, lng: 121.0198 },
+    'd1-greenbelt': { lat: 10.2930, lng: 123.9024 },
+    'd1-manam': { lat: 10.2930, lng: 123.9024 },
+    'd1-wei-arrive': { lat: 10.3075, lng: 123.9794 },
+    'd1-walk': { lat: 10.3157, lng: 123.8854 },
+    'd2-grab-intra': { lat: 10.3157, lng: 123.8854 },
+    'd2-intramuros': { lat: 10.2930, lng: 123.9024 },
+    'd2-robinsons': { lat: 10.3103, lng: 123.8939 },
+    'd2-kenny': { lat: 10.3103, lng: 123.8939 },
+    'd2-museum': { lat: 10.2985, lng: 123.9048 },
+    'd2-moa': { lat: 10.2663, lng: 123.9997 },
+    'd2-bay': { lat: 10.2663, lng: 123.9997 },
+    'd2-back': { lat: 10.3157, lng: 123.8854 },
+    'd3-legazpi': { lat: 10.3153, lng: 123.8855 },
+    'd3-pack': { lat: 10.3157, lng: 123.8854 },
+    'd3-checkout': { lat: 10.3157, lng: 123.8854 },
+    'd3-lunch': { lat: 10.3153, lng: 123.8855 },
+    'd3-airport': { lat: 10.3075, lng: 123.9794 },
+    'd3-ci704': { lat: 10.3075, lng: 123.9794 },
 };
 
 const COORDS_BY_TITLE: Record<string, MapCoord> = {
