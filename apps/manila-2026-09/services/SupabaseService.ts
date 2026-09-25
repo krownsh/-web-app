@@ -11,42 +11,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 const TRIP_SLUG = 'manila-2026-09';
 
-// Temporary client-only display layer. Never writes to Supabase.
-const CEBU_ITEMS: Record<string, Partial<ItineraryItem>> = {
-    'd1-ci703': { title: '抵達宿霧', description: '15:30 抵達麥克坦宿霧國際機場。', location: 'Mactan-Cebu International Airport', type: 'flight', lat: 10.3075, lng: 123.9794 },
-    'd1-immigration': { description: '15:45–17:00 通關／領行李／換匯。', location: 'Mactan-Cebu International Airport', lat: 10.3075, lng: 123.9794 },
-    'd1-grab': { location: 'Cebu City', lat: 10.3157, lng: 123.8854 },
-    'd1-checkin': { title: 'Quest Hotel 入住', description: 'Cebu City 市區入住。', location: 'Quest Hotel & Conference Center Cebu', lat: 10.3157, lng: 123.8854 },
-    'd1-greenbelt': { title: '前往麥哲倫十字架', location: 'Magellan’s Cross', type: 'attraction', lat: 10.293, lng: 123.9024 },
-    'd1-manam': { title: '晚餐：Cebu Lechon', description: '烤乳豬與海鮮。19:00–20:30', location: 'Cebu City', lat: 10.293, lng: 123.9024 },
-    'd1-wei-arrive': { title: '韋劭抵達宿霧', description: '20:15 抵達麥克坦宿霧國際機場。', location: 'Mactan-Cebu International Airport', lat: 10.3075, lng: 123.9794 },
-    'd1-walk': { title: '宿霧市區散步回飯店', description: '飯店附近自由活動。', location: 'Cebu City', lat: 10.3157, lng: 123.8854 },
-    'd2-grab-intra': { title: '集合 Grab 往聖嬰聖殿', location: 'Basilica del Santo Niño', lat: 10.293, lng: 123.9024 },
-    'd2-intramuros': { title: '聖嬰聖殿與麥哲倫十字架', description: '周邊散步拍照。09:00–12:00', location: 'Basilica del Santo Niño', lat: 10.293, lng: 123.9024 },
-    'd2-robinsons': { title: 'Grab 至 Ayala Center Cebu', location: 'Ayala Center Cebu', lat: 10.3103, lng: 123.8939 },
-    'd2-kenny': { title: 'Ayala Center 午餐', location: 'Ayala Center Cebu', lat: 10.3103, lng: 123.8939 },
-    'd2-museum': { title: 'Museo Sugbo', description: '宿霧博物館散步。14:30–16:30', location: 'Museo Sugbo', lat: 10.2985, lng: 123.9048 },
-    'd2-moa': { title: '麥克坦海邊夕陽', location: 'Mactan', lat: 10.2663, lng: 123.9997 },
-    'd2-bay': { title: '海景晚餐', location: 'Mactan', lat: 10.2663, lng: 123.9997 },
-    'd2-back': { description: 'Quest Hotel', location: 'Cebu City', lat: 10.3157, lng: 123.8854 },
-    'd3-legazpi': { title: 'Carbon Market', description: '市集約早上開始，建議早到。09:00–11:30', location: 'Carbon Market', lat: 10.3153, lng: 123.8855 },
-    'd3-pack': { location: 'Quest Hotel', lat: 10.3157, lng: 123.8854 },
-    'd3-checkout': { location: 'Quest Hotel', lat: 10.3157, lng: 123.8854 },
-    'd3-lunch': { title: '午餐：宿霧市區', location: 'Cebu City', lat: 10.3153, lng: 123.8855 },
-    'd3-airport': { location: 'Mactan-Cebu International Airport', lat: 10.3075, lng: 123.9794 },
-    'd3-ci704': { title: '華航 CI704 宿霧 → 桃園', location: 'Mactan-Cebu International Airport', lat: 10.3075, lng: 123.9794 },
-};
-
-function temporaryCebuTrip(trip: Trip): Trip {
-    return { ...trip, title: '宿霧三日', subtitle: 'Cebu City · Quest Hotel', weather_lat: 10.3157, weather_lng: 123.8854, theme: { ...trip.theme, appLabel: '宿霧三日', shortName: '宿霧' } };
-}
-
-function temporaryCebuItem(item: ItineraryItem): ItineraryItem {
-    const patch = item.stable_key ? CEBU_ITEMS[item.stable_key] : undefined;
-    const next = { ...item, ...patch, description: patch?.description ?? item.description };
-    return { ...next, note: next.description, image: imageForItem(next.title, next.image_url) };
-}
-
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         persistSession: true,
@@ -94,7 +58,7 @@ export const SupabaseService = {
             .eq('slug', TRIP_SLUG)
             .order('start_date', { ascending: false });
         if (error) throw error;
-        return (data || []).map(temporaryCebuTrip);
+        return (data || []) as Trip[];
     },
 
     async joinThisAppTrip(): Promise<string> {
@@ -115,10 +79,7 @@ export const SupabaseService = {
             .eq('trip_id', tripId)
             .order('day_index', { ascending: true });
         if (error) throw error;
-        return (data || []).map((day) => ({
-            ...day,
-            reminder: day.day_key === 'D1' ? '桃園機場 13:30 起飛，15:30 抵達麥克坦宿霧機場。通關後換匯再 Grab。' : day.day_key === 'D2' ? '市區景點與海邊行程，記得防曬。' : day.day_key === 'D3' ? 'Carbon Market 約早上開始營業。Checkout 12:00。' : day.reminder,
-        })) as TripDay[];
+        return (data || []) as TripDay[];
     },
 
     async getItinerary(tripId: string) {
@@ -129,7 +90,7 @@ export const SupabaseService = {
             .order('day_key', { ascending: true })
             .order('sort_order', { ascending: true });
         if (error) throw error;
-        return (data || []).map(mapItinerary).map(temporaryCebuItem);
+        return (data || []).map(mapItinerary);
     },
 
     async getTravelers(tripId: string): Promise<Traveler[]> {
@@ -139,11 +100,7 @@ export const SupabaseService = {
             .eq('trip_id', tripId)
             .order('sort_order', { ascending: true });
         if (error) throw error;
-        return (data || []).map((traveler) => ({
-            ...traveler,
-            outbound: { ...traveler.outbound, route: '桃園 TPE → 宿霧 CEB' },
-            inbound: { ...traveler.inbound, route: '宿霧 → 桃園' },
-        })) as Traveler[];
+        return (data || []) as Traveler[];
     },
 
     async getReminders(tripId: string) {
@@ -153,9 +110,7 @@ export const SupabaseService = {
             .eq('trip_id', tripId)
             .order('sort_order', { ascending: true });
         if (error) throw error;
-        return (data || []).map((reminder) => reminder.title === '住宿'
-            ? { ...reminder, payload: { items: ['Quest Hotel & Conference Center Cebu', 'Cebu City', '入住 9/25，退房 9/27', '市區集合後再出發'] } }
-            : reminder);
+        return data || [];
     },
 
     async getPrepItems(tripId: string) {

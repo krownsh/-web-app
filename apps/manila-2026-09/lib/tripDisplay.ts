@@ -1,7 +1,7 @@
 import type { Trip } from '../types';
 
-const TITLE = '宿霧三日';
-const TITLE_EGG = '日霧宿三';
+const TITLE = '馬尼拉三日';
+const TITLE_EGG = '日尼馬拉三';
 const TITLE_EGG_KEY = 'zentravel-title-egg';
 
 export function displayTripTitle(title?: string | null) {
@@ -27,7 +27,7 @@ export function currencyMeta(code?: string) {
     return { code: c || 'TWD', symbol: c || 'NT$', name: c || '台幣' };
 }
 
-export const CEBU_WEATHER_COORDS = { lat: 10.3157, lng: 123.8854 };
+export const MANILA_WEATHER_COORDS = { lat: 14.5515, lng: 121.0173 };
 
 export function ymd(value?: string | null) {
     return (value || '').slice(0, 10);
@@ -35,7 +35,7 @@ export function ymd(value?: string | null) {
 
 export function weatherPlace(trip?: Trip | null) {
     const tz = trip?.timezone || '';
-    if (tz.includes('Manila')) return '宿霧';
+    if (tz.includes('Manila')) return '馬尼拉';
     if (tz.includes('Bangkok')) return '曼谷';
     return trip?.theme?.shortName || trip?.title || '當地';
 }
@@ -46,7 +46,7 @@ export function weatherCoords(trip?: Trip | null) {
     if (Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0)) {
         return { lat, lng };
     }
-    return CEBU_WEATHER_COORDS;
+    return MANILA_WEATHER_COORDS;
 }
 
 export function weatherCodeToIcon(code: number) {
