@@ -8,6 +8,7 @@ import { currencyMeta } from '../lib/tripDisplay';
 import { Skeleton } from '../components/ui/skeleton';
 import { toast } from 'sonner';
 import { BottomSheet } from '../components/ui/bottom-sheet';
+import SwipeableRow from '../components/SwipeableRow';
 
 const MapBudgetScreen: React.FC = () => {
     const location = useLocation();
@@ -239,6 +240,19 @@ const MapBudgetScreen: React.FC = () => {
         }
     };
 
+    const handleDeleteRecord = async (id: string) => {
+        const previousRecords = records;
+        setRecords((current) => current.filter((record) => record.id !== id));
+        try {
+            await SupabaseService.deleteRecord('zentravel_budget_records', id);
+            toast('已刪除消費紀錄');
+        } catch (err) {
+            console.error(err);
+            setRecords(previousRecords);
+            toast.error('刪除失敗');
+        }
+    };
+
     // Helpers for display
     const getCategoryIcon = (cat: string) => {
         switch (cat) {
@@ -431,9 +445,9 @@ const MapBudgetScreen: React.FC = () => {
                             <p className="text-sm font-bold">尚無消費紀錄</p>
                         </div>
                     ) : (
-                        filteredRecords.map((item: any, idx: number) => (
+                        filteredRecords.map((item: any, idx: number) => {
+                            const row = (
                             <div
-                                key={item.id}
                                 onClick={() => handleEditClick(item)}
                                 style={{ animationDelay: `${idx * 40}ms` }}
                                 className={`group flex items-center gap-4 p-4 rounded-3xl border shadow-sm active:scale-[0.98] transition-all cursor-pointer animate-slide-up ${item.payment_type === 'self' ? 'bg-zen-brown/5 border-zen-brown/10' : 'bg-white border-zen-rock/5'}`}
@@ -450,7 +464,15 @@ const MapBudgetScreen: React.FC = () => {
                                 </div>
                                 <p className="text-base font-bold text-zen-text font-display">-{getCurrencySymbol(item.currency || 'THB')}{item.amount}</p>
                             </div>
-                        ))
+                            );
+                            return item.owner_id === myUserId ? (
+                                <SwipeableRow key={item.id} onDelete={() => handleDeleteRecord(item.id)}>
+                                    {row}
+                                </SwipeableRow>
+                            ) : (
+                                <div key={item.id}>{row}</div>
+                            );
+                        })
                     )}
                 </div>
 
