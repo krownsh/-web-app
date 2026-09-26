@@ -79,7 +79,7 @@ export const HomeScreen: React.FC = () => {
             photo_url: gameClaim?.photo_url || null,
             kind: gameClaim?.kind || 'unknown',
         };
-        setDevilVotes([...previous.filter((v) => v.user_id !== myUserId), mine]);
+        setDevilVotes([...previous, mine]);
         setVotingPhoto(true);
         try {
             await SupabaseService.voteDevilPhoto(trip.id, photoId);
@@ -659,12 +659,11 @@ export const HomeScreen: React.FC = () => {
                     <div>
                         <div className="flex items-center justify-between px-1 mb-2">
                             <h3 className="text-sm font-medium">醜照蒐集站</h3>
-                            <p className="text-[10px] text-zen-text-light">團員與訪客都能投，隨時可改投</p>
+                            <p className="text-[10px] text-zen-text-light">團員與訪客都能投，可重複投票</p>
                         </div>
                         <DevilPhotoLeaderboard
                             photos={devilPhotos}
                             votes={devilVotes}
-                            myUserId={myUserId}
                             voting={votingPhoto}
                             onVote={(photoId) => void voteUglyPhoto(photoId)}
                         />

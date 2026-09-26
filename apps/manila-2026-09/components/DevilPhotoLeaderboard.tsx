@@ -18,7 +18,6 @@ export type DevilLeaderboardPhoto = {
 type Props = {
     photos: DevilLeaderboardPhoto[];
     votes: DevilPhotoVote[];
-    myUserId: string;
     onVote: (photoId: string) => void;
     voting: boolean;
 };
@@ -50,8 +49,13 @@ function rankPhotos(photos: DevilLeaderboardPhoto[], votes: DevilPhotoVote[]) {
 }
 
 const VoterRow: React.FC<{ voters: DevilPhotoVote[] }> = ({ voters }) => {
-    const shown = voters.slice(0, 8);
-    const extra = voters.length - shown.length;
+    // One person can cast multiple votes now. Keep the avatar row readable while
+    // the numeric total continues to reflect every vote.
+    const distinctVoters = Array.from(
+        new Map(voters.map((voter) => [voter.user_id, voter])).values()
+    );
+    const shown = distinctVoters.slice(0, 8);
+    const extra = distinctVoters.length - shown.length;
     return (
         <div className="flex items-center gap-1 min-h-[28px] overflow-hidden px-0.5 pt-1">
             {voters.length === 0 ? (
@@ -90,14 +94,12 @@ const VoterRow: React.FC<{ voters: DevilPhotoVote[] }> = ({ voters }) => {
 
 type CardProps = {
     photo: ReturnType<typeof rankPhotos>[number];
-    myUserId: string;
     onOpen: () => void;
     onVote: () => void;
     voting: boolean;
 };
 
-const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, voting }) => {
-    const votedHere = photo.voters.some((v) => v.user_id === myUserId);
+const PhotoCard: React.FC<CardProps> = ({ photo, onOpen, onVote, voting }) => {
     const place = photo.place ? PLACE[photo.place] : null;
 
     return (
@@ -112,24 +114,18 @@ const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, votin
                     <button type="button" onClick={onOpen} className="block w-full text-left" aria-label="放大醜照">
                         <img src={photo.url} alt="" className="aspect-square w-full object-cover" />
                     </button>
-                    {votedHere ? (
-                        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-zen-moss/90 px-2 py-0.5 text-[10px] font-medium text-white">
-                            已投
-                        </span>
-                    ) : (
-                        <button
-                            type="button"
-                            disabled={voting}
-                            aria-label="投這張醜照"
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                onVote();
-                            }}
-                            className="absolute bottom-1.5 right-1.5 flex size-9 items-center justify-center rounded-full bg-white text-cta shadow-md disabled:opacity-60"
-                        >
-                            <span className="material-symbols-outlined text-[20px]">how_to_vote</span>
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        disabled={voting}
+                        aria-label="投這張醜照"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onVote();
+                        }}
+                        className="absolute bottom-1.5 right-1.5 flex size-9 items-center justify-center rounded-full bg-white text-cta shadow-md disabled:opacity-60"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">how_to_vote</span>
+                    </button>
                 </div>
             </div>
             <VoterRow voters={photo.voters} />
@@ -137,7 +133,7 @@ const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, votin
     );
 };
 
-export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId, onVote, voting }) => {
+export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, onVote, voting }) => {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const [openId, setOpenId] = useState<string | null>(null);
     const ranked = useMemo(() => rankPhotos(photos, votes), [photos, votes]);
@@ -174,7 +170,6 @@ export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId
 
     const cardProps = (photo: ReturnType<typeof rankPhotos>[number]) => ({
         photo,
-        myUserId,
         voting,
         onOpen: () => setOpenId(photo.id),
         onVote: () => onVote(photo.id),
