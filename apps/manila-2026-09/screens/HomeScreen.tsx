@@ -97,6 +97,24 @@ export const HomeScreen: React.FC = () => {
         }
     };
 
+    const cancelUglyPhotoVote = async (photoId: string) => {
+        if (!trip?.id || !myUserId || votingPhoto) return;
+        const previous = devilVotes;
+        setDevilVotes(previous.filter((v) => v.user_id !== myUserId || v.photo_id !== photoId));
+        setVotingPhoto(true);
+        try {
+            await SupabaseService.cancelDevilPhotoVote(trip.id, photoId);
+            const fresh = await SupabaseService.getDevilPhotoVotes(trip.id);
+            setDevilVotes(fresh);
+        } catch (err) {
+            console.error(err);
+            setDevilVotes(previous);
+            toast('取消投票失敗，請再試一次');
+        } finally {
+            setVotingPhoto(false);
+        }
+    };
+
     const [liveRate, setLiveRate] = useState(Number(trip?.exchange_rate) || 1);
     const [foreignAmount, setForeignAmount] = useState('');
     const [twdAmount, setTwdAmount] = useState('');
@@ -670,6 +688,7 @@ export const HomeScreen: React.FC = () => {
                             myUserId={myUserId}
                             voting={votingPhoto}
                             onVote={(photoId) => void voteUglyPhoto(photoId)}
+                            onCancelVote={(photoId) => void cancelUglyPhotoVote(photoId)}
                         />
                     </div>
                 )}

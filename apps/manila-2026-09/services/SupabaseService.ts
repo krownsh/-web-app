@@ -469,6 +469,14 @@ export const SupabaseService = {
         if (error) throw error;
     },
 
+    async cancelDevilPhotoVote(tripId: string, photoId: string) {
+        const { error } = await supabase.rpc('zentravel_cancel_devil_photo_vote', {
+            p_trip_id: tripId,
+            p_photo_id: photoId,
+        });
+        if (error) throw error;
+    },
+
     async signedGamePhoto(path: string) {
         const { data, error } = await supabase.storage.from('zentravel-game-photos').createSignedUrl(path, 3600);
         if (error) throw error;

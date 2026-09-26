@@ -20,6 +20,7 @@ type Props = {
     votes: DevilPhotoVote[];
     myUserId: string;
     onVote: (photoId: string) => void;
+    onCancelVote: (photoId: string) => void;
     voting: boolean;
 };
 
@@ -93,10 +94,11 @@ type CardProps = {
     myUserId: string;
     onOpen: () => void;
     onVote: () => void;
+    onCancelVote: () => void;
     voting: boolean;
 };
 
-const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, voting }) => {
+const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, onCancelVote, voting }) => {
     const votedHere = photo.voters.some((v) => v.user_id === myUserId);
     const place = photo.place ? PLACE[photo.place] : null;
 
@@ -113,9 +115,18 @@ const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, votin
                         <img src={photo.url} alt="" className="aspect-square w-full object-cover" />
                     </button>
                     {votedHere ? (
-                        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-zen-moss/90 px-2 py-0.5 text-[10px] font-medium text-white">
-                            已投
-                        </span>
+                        <button
+                            type="button"
+                            disabled={voting}
+                            aria-label="取消這張醜照的投票"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onCancelVote();
+                            }}
+                            className="absolute bottom-1.5 right-1.5 rounded-full bg-zen-moss/90 px-2 py-0.5 text-[10px] font-medium text-white disabled:opacity-60"
+                        >
+                            已投 · 取消
+                        </button>
                     ) : (
                         <button
                             type="button"
@@ -137,7 +148,7 @@ const PhotoCard: React.FC<CardProps> = ({ photo, myUserId, onOpen, onVote, votin
     );
 };
 
-export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId, onVote, voting }) => {
+export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId, onVote, onCancelVote, voting }) => {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const [openId, setOpenId] = useState<string | null>(null);
     const ranked = useMemo(() => rankPhotos(photos, votes), [photos, votes]);
@@ -178,6 +189,7 @@ export const DevilPhotoLeaderboard: React.FC<Props> = ({ photos, votes, myUserId
         voting,
         onOpen: () => setOpenId(photo.id),
         onVote: () => onVote(photo.id),
+        onCancelVote: () => onCancelVote(photo.id),
     });
 
     return (
