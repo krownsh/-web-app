@@ -9,6 +9,7 @@ import { GameGuessPicker } from '../components/GameGuessPicker';
 import { GameLotteryBridge } from '../components/GameLotteryBridge';
 import { DevilPhotoRail } from '../components/DevilPhotoRail';
 import { GameRevealBoard } from '../components/GameRevealBoard';
+import { GameGuessLeaderboard } from '../components/GameGuessLeaderboard';
 import type { Traveler } from '../types';
 
 type Draw = {
@@ -48,6 +49,7 @@ export const GameScreen: React.FC = () => {
     const [revealed, setRevealed] = useState(false);
     const [revealAt, setRevealAt] = useState('');
     const [board, setBoard] = useState<Awaited<ReturnType<typeof SupabaseService.getAllGameDraws>>>([]);
+    const [guessLeaderboard, setGuessLeaderboard] = useState<Awaited<ReturnType<typeof SupabaseService.getGameGuessLeaderboard>>>([]);
     const [msg, setMsg] = useState('');
     const [busy, setBusy] = useState(false);
     const [mode, setMode] = useState<'angel' | 'devil'>(() => {
@@ -108,7 +110,12 @@ export const GameScreen: React.FC = () => {
             setRevealed(info.revealed);
             setRevealAt(info.reveal_at);
             if (info.revealed) {
-                setBoard(await SupabaseService.getAllGameDraws(tripId));
+                const [drawRows, scoreRows] = await Promise.all([
+                    SupabaseService.getAllGameDraws(tripId),
+                    SupabaseService.getGameGuessLeaderboard(tripId),
+                ]);
+                setBoard(drawRows);
+                setGuessLeaderboard(scoreRows);
             }
             return;
         }
@@ -127,7 +134,12 @@ export const GameScreen: React.FC = () => {
         setRevealed(info.revealed);
         setRevealAt(info.reveal_at);
         if (info.revealed) {
-            setBoard(await SupabaseService.getAllGameDraws(tripId));
+            const [drawRows, scoreRows] = await Promise.all([
+                SupabaseService.getAllGameDraws(tripId),
+                SupabaseService.getGameGuessLeaderboard(tripId),
+            ]);
+            setBoard(drawRows);
+            setGuessLeaderboard(scoreRows);
         }
     };
 
@@ -448,6 +460,7 @@ export const GameScreen: React.FC = () => {
                             guessAngel={guessAngel}
                             guessDevil={guessDevil}
                         />
+                        <GameGuessLeaderboard scores={guessLeaderboard} />
                     </>
                 ) : (
                     <p className="text-sm text-zen-text-light mt-2">

@@ -419,6 +419,19 @@ export const SupabaseService = {
         }[];
     },
 
+    async getGameGuessLeaderboard(tripId: string) {
+        const { data, error } = await supabase.rpc('zentravel_game_guess_leaderboard', { p_trip_id: tripId });
+        if (error) throw error;
+        return (data || []) as {
+            traveler_id: string;
+            display_name: string;
+            photo_url: string | null;
+            angel_correct: boolean;
+            devil_correct: boolean;
+            score: number;
+        }[];
+    },
+
     async getGameWishes(tripId: string) {
         const { data, error } = await supabase
             .from('zentravel_game_wishes')
